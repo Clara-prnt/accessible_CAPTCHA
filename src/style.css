@@ -1,0 +1,144 @@
+/* Global styles */
+
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  margin: 0;
+  padding: 0;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  padding: 0 5vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 100vh;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 2.5em;
+  line-height: 1.1;
+}
+
+h2 {
+  font-size: 1.5em;
+  line-height: 1.1;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Card styles */
+
+.card {
+  padding: 1.5em;
+  width: 60%;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background-color: #c3c3c3;
+  color: #242424;
+}
+
+/* CAPTCHA Styles */
+
+#captcha {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 2%;
+}
+
+#links {
+  padding-top: 1em;
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  border-top: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+/* Form styles */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  width: 50%;
+}
+
+/* Button styles */
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Footer styles */
+
+footer {
+  margin-top: auto;
+  padding: 1em 0;
+  text-align: center;
+  color: #888;
+  display: flex;
+}
+
+/* Light mode styles */
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}
+
+/* Responsive styles */
+
+@media (max-width: 768px) {
+  body {
+    padding: 0 3vh;
+  }
+  .card {
+    width: 100%;
+  }
+  form {
+    width: 100%;
+  }
+}

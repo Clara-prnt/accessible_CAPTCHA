@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script type="module" src="/src/main.js"></script>
+    <title>CAPTCHA demo</title>
+  </head>
+  <body>
+    <div id="app">
+      <h1>CAPTCHA demo</h1>
+      <p>This is a fake website to show how the CAPTCHA will appear.</p>
+    </div>
+    <div id="form">
+      <p>Welcome back!</p>
+      <form>
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required />
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required />
+        <button type="submit">Login</button>
+      </form>
+    </div>
+    <div id="captcha_card" class="card" hidden>
+      <div id="description"></div>
+      <h2>CAPTCHA Verification</h2>
+      <h3 id="explanation"></h3>
+      <div id="captcha"></div>
+      <div id="error"></div>
+      <div id="links">
+        <a href="./">Support</a>
+        <a href="./">Reload CAPTCHA</a>
+        <a href="./">Report a problem</a>
+      </div>
+    </div>
+
+  </body>
+  <footer>
+    <div id="footer">
+      <p>Copyright © 2024 Clara Pernet. All rights reserved.</p>
+    </div>
+  </footer>
+</html>
