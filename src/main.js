@@ -2,10 +2,14 @@ import './style.css'
 
 const form = document.querySelector('#form form');
 const captchaCard = document.getElementById('captcha_card');
+let captchaInstance = null;
 
-form.addEventListener('submit', (e) => {
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   captchaCard.hidden = false;
+
+  captchaInstance = new CaptchaGenerator();
+  await captchaInstance.initialize();
 });
 
 
