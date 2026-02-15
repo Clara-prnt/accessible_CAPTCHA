@@ -1,4 +1,5 @@
 import './style.css'
+import { CaptchaGenerator } from './captcha/generator.js'
 
 const form = document.querySelector('#form form');
 const captchaCard = document.getElementById('captcha_card');

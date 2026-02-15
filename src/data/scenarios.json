@@ -1,0 +1,24 @@
+{
+  "scenarios": [
+    {
+      "id": "supermarket",
+      "text": "In a supermarket...",
+      "words": ["apple", "banana", "checkout", "cart", "vegetable"]
+    },
+    {
+      "id": "train_station",
+      "text": "At the train station...",
+      "words": ["train", "platform", "ticket", "traveler", "announcement"]
+    },
+    {
+      "id": "restaurant",
+      "text": "In a restaurant...",
+      "words": ["menu", "waiter", "dish", "bill", "table"]
+    },
+    {
+      "id": "library",
+      "text": "In a library...",
+      "words": ["book", "shelf", "silence", "reading", "card"]
+    }
+  ]
+}
