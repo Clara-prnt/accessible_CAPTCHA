@@ -91,8 +91,8 @@ try {
         'targetWord' => $targetWord,
         'clicksRequired' => $clicksRequired,
         'scenarioId' => $scenarioId,
-        'wordDisplayDuration' => 2000,
-        'wordInterval' => 2000
+        'wordDisplayDuration' => 1000,
+        'wordInterval' => 1000
     ]);
 
 } catch (Exception $e) {

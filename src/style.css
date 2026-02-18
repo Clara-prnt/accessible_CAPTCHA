@@ -75,15 +75,20 @@ h2 {
   font-weight: bold;
   padding: 2em;
   min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin: 1em 0;
   color: #1a1a1a;
   border: 2px solid #1a1a1a;
   border-radius: 8px;
   background-color: #ffffff;
-  min-width: 200px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  overflow: hidden;
+}
+
+.word-text {
+  position: absolute;
+  white-space: nowrap;
 }
 
 /* Fade-in animation */

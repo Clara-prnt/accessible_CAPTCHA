@@ -60,5 +60,5 @@ Start-Sleep -Seconds 5
 Write-Host "Opening the browser..." -ForegroundColor Yellow
 Start-Process "http://localhost:5173"
 
-Write-Host "Demarrage termine!" -ForegroundColor Green
+Write-Host "Startup complete!" -ForegroundColor Green
 

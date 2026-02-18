@@ -8,10 +8,29 @@ export class CaptchaUI {
     this.currentWordIndex = 0;
     this.wordDisplayDuration = 5000; // 5 seconds default
     this.wordInterval = 5000; // interval between word changes
-    this.wordElement = null;
+    this.wordBox = null; // The static box that stays visible
+    this.wordElement = null; // The word that appears/disappears
     this.wordDisplayTimeout = null;
     this.wordChangeInterval = null;
     this.isRunning = false;
+  }
+
+  /**
+   * Generate a random angle between -15 and 15 degrees
+   * @returns {number} Random angle in degrees
+   */
+  getRandomAngle() {
+    return (Math.random() * 30 - 15); // Random angle between -15 and 15 degrees
+  }
+
+  /**
+   * Generate random coordinates within the word box
+   * @returns {Object} Object with x and y coordinates as percentages
+   */
+  getRandomCoordinates() {
+    const x = Math.random() * 70 + 15; // 15% to 85% horizontal positioning
+    const y = Math.random() * 60 + 20; // 20% to 80% vertical positioning
+    return { x, y };
   }
 
   /**
@@ -26,11 +45,19 @@ export class CaptchaUI {
     this.wordInterval = wordInterval;
     this.currentWordIndex = 0;
 
-    // Create the word display element
+    // Create the static word box that stays visible
+    this.wordBox = document.createElement('div');
+    this.wordBox.id = 'word-display';
+    this.wordBox.className = 'word-display';
+    this.wordBox.style.position = 'relative'; // Set position relative for absolute positioning inside
+    this.captchaContainer.appendChild(this.wordBox);
+
+    // Create the word element that will appear/disappear inside the box
     this.wordElement = document.createElement('div');
-    this.wordElement.id = 'word-display';
-    this.wordElement.className = 'word-display';
-    this.captchaContainer.appendChild(this.wordElement);
+    this.wordElement.className = 'word-text';
+    this.wordElement.style.position = 'absolute';
+    this.wordElement.style.whiteSpace = 'nowrap';
+    this.wordBox.appendChild(this.wordElement);
   }
 
   /**
@@ -65,8 +92,15 @@ export class CaptchaUI {
 
     const currentWord = this.words[this.currentWordIndex];
 
-    // Display the word with fade-in animation
+    // Get random angle and coordinates
+    const angle = this.getRandomAngle();
+    const coords = this.getRandomCoordinates();
+
+    // Display the word with fade-in animation and random positioning
     this.wordElement.textContent = currentWord;
+    this.wordElement.style.left = coords.x + '%';
+    this.wordElement.style.top = coords.y + '%';
+    this.wordElement.style.transform = `translate(-50%, -50%) rotate(${angle}deg)`;
     this.wordElement.classList.remove('fade-out');
     this.wordElement.classList.add('fade-in');
 
