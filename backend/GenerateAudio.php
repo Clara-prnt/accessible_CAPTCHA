@@ -4,6 +4,8 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
+require_once __DIR__ . '/ScenarioLoader.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
@@ -20,6 +22,7 @@ if (!isset($input['scenarioId']) || !isset($input['targetWord'])) {
 
 $scenarioId = $input['scenarioId'];
 $targetWord = $input['targetWord'];
+
 
 // Load scenarios from JSON file
 $scenario = loadScenariosFromJSONFile($scenarioId);

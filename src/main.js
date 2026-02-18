@@ -9,6 +9,10 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   captchaCard.hidden = false;
 
+  if (captchaInstance) {
+    captchaInstance.cleanup();
+  }
+
   captchaInstance = new CaptchaGenerator();
   await captchaInstance.initialize();
 });

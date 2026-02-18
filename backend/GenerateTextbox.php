@@ -4,6 +4,8 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST');
 header('Access-Control-Allow-Headers: Content-Type');
 
+require_once __DIR__ . '/ScenarioLoader.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     echo json_encode(['error' => 'Method not allowed']);
@@ -21,33 +23,6 @@ if (!isset($input['scenarioId']) || !isset($input['targetWord'])) {
 $scenarioId = $input['scenarioId'];
 $targetWord = $input['targetWord'];
 $clicksRequired = isset($input['clicksRequired']) ? $input['clicksRequired'] : 3;
-
-// Load scenarios from JSON file
-/**
- * @param $scenarioId
- * @return mixed|void
- */
-function loadScenariosFromJSONFile($scenarioId)
-{
-    $scenariosPath = __DIR__ . '/../src/data/scenarios.json';
-    $scenariosData = json_decode(file_get_contents($scenariosPath), true);
-
-// Find the matching scenario
-    $scenario = null;
-    foreach ($scenariosData['scenarios'] as $s) {
-        if ($s['id'] === $scenarioId) {
-            $scenario = $s;
-            break;
-        }
-    }
-
-    if (!$scenario) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Scenario not found']);
-        exit;
-    }
-    return $scenario;
-}
 
 $scenario = loadScenariosFromJSONFile($scenarioId);
 
