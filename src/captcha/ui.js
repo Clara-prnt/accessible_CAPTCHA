@@ -13,6 +13,12 @@ export class CaptchaUI {
     this.wordDisplayTimeout = null;
     this.wordChangeInterval = null;
     this.isRunning = false;
+    this.audioControls = null;
+    this.playPauseButton = null;
+    this.volumeInput = null;
+    this.rateSelect = null;
+    this.statusText = null;
+    this.wordBoxToggleHandler = null;
   }
 
   /**
@@ -58,6 +64,81 @@ export class CaptchaUI {
     this.wordElement.style.position = 'absolute';
     this.wordElement.style.whiteSpace = 'nowrap';
     this.wordBox.appendChild(this.wordElement);
+  }
+
+  initializeAudioControls({ onToggle, onVolumeChange, onRateChange }) {
+    this.audioControls = document.createElement('div');
+    this.audioControls.className = 'audio-controls';
+
+    this.playPauseButton = document.createElement('button');
+    this.playPauseButton.type = 'button';
+    this.playPauseButton.id = 'audio-toggle';
+    this.playPauseButton.textContent = 'Play';
+    this.playPauseButton.setAttribute('aria-pressed', 'false');
+    this.playPauseButton.addEventListener('click', onToggle);
+
+    const volumeLabel = document.createElement('label');
+    volumeLabel.textContent = 'Volume';
+    this.volumeInput = document.createElement('input');
+    this.volumeInput.type = 'range';
+    this.volumeInput.min = '0';
+    this.volumeInput.max = '1';
+    this.volumeInput.step = '0.05';
+    this.volumeInput.value = '1';
+    this.volumeInput.addEventListener('input', (event) => {
+      const value = Number(event.target.value);
+      onVolumeChange(value);
+    });
+    volumeLabel.appendChild(this.volumeInput);
+
+    const rateLabel = document.createElement('label');
+    rateLabel.textContent = 'Speed';
+    this.rateSelect = document.createElement('select');
+    const rates = [0.75, 1, 1.25, 1.5];
+    rates.forEach((rate) => {
+      const option = document.createElement('option');
+      option.value = String(rate);
+      option.textContent = `${rate}x`;
+      if (rate === 1) option.selected = true;
+      this.rateSelect.appendChild(option);
+    });
+    this.rateSelect.addEventListener('change', (event) => {
+      const value = Number(event.target.value);
+      onRateChange(value);
+    });
+    rateLabel.appendChild(this.rateSelect);
+
+    this.statusText = document.createElement('span');
+    this.statusText.id = 'audio-status';
+    this.statusText.textContent = '';
+
+    this.audioControls.appendChild(this.playPauseButton);
+    this.audioControls.appendChild(volumeLabel);
+    this.audioControls.appendChild(rateLabel);
+    this.audioControls.appendChild(this.statusText);
+
+    this.captchaContainer.appendChild(this.audioControls);
+  }
+
+  setPlayPauseState(isPlaying) {
+    if (!this.playPauseButton) return;
+    this.playPauseButton.textContent = isPlaying ? 'Pause' : 'Play';
+    this.playPauseButton.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
+  }
+
+  setAudioStatus(text) {
+    if (this.statusText) {
+      this.statusText.textContent = text;
+    }
+  }
+
+  setWordBoxToggleHandler(handler) {
+    if (!this.wordBox) return;
+    if (this.wordBoxToggleHandler) {
+      this.wordBox.removeEventListener('click', this.wordBoxToggleHandler);
+    }
+    this.wordBoxToggleHandler = handler;
+    this.wordBox.addEventListener('click', handler);
   }
 
   /**
@@ -174,9 +255,14 @@ export class CaptchaUI {
    */
   destroy() {
     this.stopDisplayingWords();
+    if (this.wordBox && this.wordBoxToggleHandler) {
+      this.wordBox.removeEventListener('click', this.wordBoxToggleHandler);
+    }
     if (this.wordElement) {
       this.wordElement.remove();
     }
+    if (this.audioControls) {
+      this.audioControls.remove();
+    }
   }
 }
-

@@ -8,6 +8,7 @@
  **/
 
 import { CaptchaUI } from './ui.js';
+import { CaptchaAudio } from './audio.js';
 
 export class CaptchaGenerator {
   constructor() {
@@ -16,6 +17,7 @@ export class CaptchaGenerator {
     this.scenario = null;
     this.scenarios = null;
     this.ui = new CaptchaUI();
+    this.audio = new CaptchaAudio();
   }
 
   async initialize() {
@@ -32,10 +34,7 @@ export class CaptchaGenerator {
       // Load words from the backend
       await this.loadTextboxWords();
 
-      // Start displaying words
-      this.ui.startDisplayingWords();
-
-      // Start audio
+      // Start audio (and word display will sync with it)
       await this.startAudio();
     } catch (error) {
       console.error('Error initializing CAPTCHA:', error);
@@ -136,13 +135,91 @@ export class CaptchaGenerator {
   }
 
   async startAudio() {
-    // TODO: Implement audio playback using Web Audio API or HTML5 Audio
-    // This should play the audio scenario and handle pausing/resuming on click
-    console.log('Starting audio for scenario:', this.scenario.id);
+    try {
+      const apiUrl = '/backend/GenerateAudio.php';
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          scenarioId: this.scenario.id,
+          targetWord: this.targetWord,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      this.ui.initializeAudioControls({
+        onToggle: () => this.toggleAudio(),
+        onVolumeChange: (value) => this.audio.setVolume(value),
+        onRateChange: (value) => this.audio.setPlaybackRate(value),
+      });
+
+      this.ui.setAudioStatus('Loading audio...');
+
+      this.audio.setHandlers({
+        onPlay: () => {
+          this.ui.setPlayPauseState(true);
+          this.ui.setAudioStatus('Playing');
+          this.ui.startDisplayingWords();
+        },
+        onPause: () => {
+          this.ui.setPlayPauseState(false);
+          this.ui.setAudioStatus('Paused');
+          this.ui.stopDisplayingWords();
+        },
+        onEnded: () => {
+          this.ui.setPlayPauseState(false);
+          this.ui.setAudioStatus('Finished');
+          this.ui.stopDisplayingWords();
+        },
+        onError: () => {
+          this.ui.setAudioStatus('Audio error');
+          this.ui.showError('Audio playback failed.');
+        },
+      });
+
+      await this.audio.load(data.audioUrl);
+
+      this.ui.setWordBoxToggleHandler(() => this.toggleAudio());
+      this.ui.setAudioStatus('Ready');
+
+      try {
+        await this.audio.play();
+      } catch (playError) {
+        this.ui.setPlayPauseState(false);
+        this.ui.setAudioStatus('Press Play to start');
+        console.warn('Autoplay blocked or failed:', playError);
+      }
+    } catch (error) {
+      console.error('Error starting audio:', error);
+      this.ui.showError('Failed to start audio: ' + error.message);
+      throw error;
+    }
+  }
+
+  async toggleAudio() {
+    try {
+      await this.audio.toggle();
+    } catch (error) {
+      this.ui.showError('Audio control failed: ' + error.message);
+    }
   }
 
   // Cleanup method to stop the UI when CAPTCHA is done
   cleanup() {
+    if (this.audio) {
+      this.audio.stop();
+    }
     if (this.ui) {
       this.ui.destroy();
     }

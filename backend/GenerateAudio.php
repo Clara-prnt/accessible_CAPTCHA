@@ -35,6 +35,12 @@ try {
     // Execute the Python script
     $output = shell_exec($command);
 
+    $output = isset($output) ? $output : '';
+    if (strpos($output, "\x00") !== false && function_exists('iconv')) {
+        $output = iconv('UTF-16LE', 'UTF-8', $output);
+    }
+    $output = trim($output);
+
     // Parse the response from Python
     $result = json_decode($output, true);
 
