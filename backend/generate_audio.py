@@ -30,6 +30,9 @@ try:
     # Build audio text
     audio_text = scenario['text'] + ' ' + ', '.join(scenario['words'])
 
+    intro_words = scenario['text'].split()
+    lead_in_seconds = max(0.5, len(intro_words) / 2.5)
+
     # Create audio directory
     os.makedirs(output_dir, exist_ok=True)
 
@@ -46,7 +49,8 @@ try:
         'success': True,
         'audioUrl': f'/audio/{filename}',
         'targetWord': target_word,
-        'duration': len(audio_text) / 15
+        'duration': len(audio_text) / 15,
+        'leadInSeconds': lead_in_seconds
     }
 
     sys.stdout.write(json.dumps(response))

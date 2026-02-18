@@ -18,6 +18,11 @@ export class CaptchaGenerator {
     this.scenarios = null;
     this.ui = new CaptchaUI();
     this.audio = new CaptchaAudio();
+    this.leadInMs = 0;
+    this.wordStartTimeout = null;
+    this.wordStartRemainingMs = 0;
+    this.wordStartTimestamp = 0;
+    this.wordsStarted = false;
   }
 
   async initialize() {
@@ -31,11 +36,11 @@ export class CaptchaGenerator {
       // Display instructions to the user with the target word and number of clicks required
       this.displayInstructions();
 
-      // Load words from the backend
-      await this.loadTextboxWords();
-
       // Start audio (and word display will sync with it)
       await this.startAudio();
+
+      // Load words from the backend
+      await this.loadTextboxWords();
     } catch (error) {
       console.error('Error initializing CAPTCHA:', error);
       this.ui.showError('Failed to initialize CAPTCHA: ' + error.message);
@@ -158,6 +163,11 @@ export class CaptchaGenerator {
         throw new Error(data.error);
       }
 
+      const leadInSeconds = Number(data.leadInSeconds ?? 0);
+      this.leadInMs = Math.max(0, leadInSeconds * 1000);
+      this.wordStartRemainingMs = this.leadInMs;
+      this.wordsStarted = false;
+
       this.ui.initializeAudioControls({
         onToggle: () => this.toggleAudio(),
         onVolumeChange: (value) => this.audio.setVolume(value),
@@ -170,16 +180,32 @@ export class CaptchaGenerator {
         onPlay: () => {
           this.ui.setPlayPauseState(true);
           this.ui.setAudioStatus('Playing');
-          this.ui.startDisplayingWords();
+          if (this.wordsStarted) {
+            this.ui.startDisplayingWords();
+          } else {
+            this.scheduleWordStart();
+          }
         },
         onPause: () => {
           this.ui.setPlayPauseState(false);
           this.ui.setAudioStatus('Paused');
-          this.ui.stopDisplayingWords();
+          if (this.wordStartTimeout) {
+            clearTimeout(this.wordStartTimeout);
+            this.wordStartTimeout = null;
+            const elapsed = Date.now() - this.wordStartTimestamp;
+            this.wordStartRemainingMs = Math.max(0, this.wordStartRemainingMs - elapsed);
+          }
+          if (this.wordsStarted) {
+            this.ui.stopDisplayingWords();
+          }
         },
         onEnded: () => {
           this.ui.setPlayPauseState(false);
           this.ui.setAudioStatus('Finished');
+          if (this.wordStartTimeout) {
+            clearTimeout(this.wordStartTimeout);
+            this.wordStartTimeout = null;
+          }
           this.ui.stopDisplayingWords();
         },
         onError: () => {
@@ -191,7 +217,8 @@ export class CaptchaGenerator {
       await this.audio.load(data.audioUrl);
 
       this.ui.setWordBoxToggleHandler(() => this.toggleAudio());
-      this.ui.setAudioStatus('Ready');
+      this.ui.setAudioStatus(this.leadInMs > 0 ? 'Ready (intro playing)' : 'Ready');
+
 
       try {
         await this.audio.play();
@@ -207,6 +234,27 @@ export class CaptchaGenerator {
     }
   }
 
+  scheduleWordStart() {
+    if (this.wordsStarted) return;
+    if (this.wordStartTimeout) {
+      clearTimeout(this.wordStartTimeout);
+    }
+
+    if (this.wordStartRemainingMs <= 0) {
+      this.wordsStarted = true;
+      this.ui.startDisplayingWords();
+      return;
+    }
+
+    this.wordStartTimestamp = Date.now();
+    this.wordStartTimeout = setTimeout(() => {
+      this.wordStartTimeout = null;
+      this.wordStartRemainingMs = 0;
+      this.wordsStarted = true;
+      this.ui.startDisplayingWords();
+    }, this.wordStartRemainingMs);
+  }
+
   async toggleAudio() {
     try {
       await this.audio.toggle();
@@ -217,6 +265,10 @@ export class CaptchaGenerator {
 
   // Cleanup method to stop the UI when CAPTCHA is done
   cleanup() {
+    if (this.wordStartTimeout) {
+      clearTimeout(this.wordStartTimeout);
+      this.wordStartTimeout = null;
+    }
     if (this.audio) {
       this.audio.stop();
     }
