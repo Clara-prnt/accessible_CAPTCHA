@@ -9,6 +9,7 @@
 
 import { CaptchaUI } from './ui.js';
 import { CaptchaAudio } from './audio.js';
+import { CaptchaValidator } from './validator.js';
 
 export class CaptchaGenerator {
   constructor() {
@@ -18,11 +19,13 @@ export class CaptchaGenerator {
     this.scenarios = null;
     this.ui = new CaptchaUI();
     this.audio = new CaptchaAudio();
+    this.validator = null; // Will be initialized after generating the scenario
     this.leadInMs = 0;
     this.wordStartTimeout = null;
     this.wordStartRemainingMs = 0;
     this.wordStartTimestamp = 0;
     this.wordsStarted = false;
+    this.isValidationActive = false; // Only count clicks when audio is playing
   }
 
   async initialize() {
@@ -67,16 +70,29 @@ export class CaptchaGenerator {
     const wordIndex = Math.floor(Math.random() * this.scenario.words.length);
     this.targetWord = this.scenario.words[wordIndex];
 
-    // Random number of clicks required between 2 and 4
-    this.clicksRequired = Math.floor(Math.random() * 3) + 2;
+    // Random number of clicks required between 2 and 3
+    this.clicksRequired = Math.floor(Math.random() * 2) + 2;
+
+    // Initialize the validator with only the clicks required
+    // (Clicks are now detected anywhere on screen, not tied to a specific word)
+    this.validator = new CaptchaValidator(this.clicksRequired);
+
+    // Set up validation callbacks
+    this.validator.onClickFeedback((feedback) => {
+      this.handleClickFeedback(feedback);
+    });
+
+    this.validator.onValidation((feedback) => {
+      this.handleValidationComplete(feedback);
+    });
   }
 
   displayInstructions() {
     const explanation = document.getElementById('explanation');
     explanation.textContent =
         `You will hear an everyday situation, and see random words appear.
-        Click ${this.clicksRequired} times anywhere on the screen when you hear/see "${this.targetWord}".
-        To pause the audio, click one time on the screen. Click one time again to resume the audio.`;
+        Click ${this.clicksRequired} times rapidly anywhere on the screen OR press Shift ${this.clicksRequired} times when you hear/see "${this.targetWord}".
+        To start the verification, click on the play button once. You can listen to the audio multiple times.`;
   }
 
   async loadTextboxWords() {
@@ -133,6 +149,21 @@ export class CaptchaGenerator {
           data.wordDisplayDuration,
           data.wordInterval
       );
+
+      // Set up the click/keyboard validation handler
+      // Users can click anywhere on the screen OR press Shift key
+      this.ui.setClickValidationHandler((event, inputType) => {
+        // Only count clicks/keys if audio is playing
+        if (!this.isValidationActive) {
+          console.log(`${inputType === 'keyboard' ? 'Shift key' : 'Click'} ignored (audio not playing)`);
+          return;
+        }
+
+        // Register the input (click or keyboard)
+        const feedback = this.validator.registerClick();
+        const method = inputType === 'keyboard' ? 'Shift key' : 'click';
+        console.log(`${method} detected:`, feedback);
+      });
     } catch (error) {
       console.error('Error loading textbox words:', error);
       throw new Error('Failed to load textbox words: ' + error.message);
@@ -180,6 +211,7 @@ export class CaptchaGenerator {
         onPlay: () => {
           this.ui.setPlayPauseState(true);
           this.ui.setAudioStatus('Playing');
+          this.isValidationActive = true; // Enable click/key validation
           if (this.wordsStarted) {
             this.ui.startDisplayingWords();
           } else {
@@ -189,6 +221,7 @@ export class CaptchaGenerator {
         onPause: () => {
           this.ui.setPlayPauseState(false);
           this.ui.setAudioStatus('Paused');
+          this.isValidationActive = false; // Disable click/key validation
           if (this.wordStartTimeout) {
             clearTimeout(this.wordStartTimeout);
             this.wordStartTimeout = null;
@@ -202,6 +235,7 @@ export class CaptchaGenerator {
         onEnded: () => {
           this.ui.setPlayPauseState(false);
           this.ui.setAudioStatus('Finished');
+          this.isValidationActive = false; // Disable click/key validation
           if (this.wordStartTimeout) {
             clearTimeout(this.wordStartTimeout);
             this.wordStartTimeout = null;
@@ -210,6 +244,7 @@ export class CaptchaGenerator {
         },
         onError: () => {
           this.ui.setAudioStatus('Audio error');
+          this.isValidationActive = false; // Disable on error
           this.ui.showError('Audio playback failed.');
         },
       });
@@ -217,16 +252,10 @@ export class CaptchaGenerator {
       await this.audio.load(data.audioUrl);
 
       this.ui.setWordBoxToggleHandler(() => this.toggleAudio());
-      this.ui.setAudioStatus(this.leadInMs > 0 ? 'Ready (intro playing)' : 'Ready');
+      this.ui.setAudioStatus('Ready - Click Play to start');
 
-
-      try {
-        await this.audio.play();
-      } catch (playError) {
-        this.ui.setPlayPauseState(false);
-        this.ui.setAudioStatus('Press Play to start');
-        console.warn('Autoplay blocked or failed:', playError);
-      }
+      // Don't autoplay - let the user click Play
+      // This gives time for screen readers to read the description
     } catch (error) {
       console.error('Error starting audio:', error);
       this.ui.showError('Failed to start audio: ' + error.message);
@@ -263,6 +292,34 @@ export class CaptchaGenerator {
     }
   }
 
+  /**
+   * Handle click feedback from the validator
+   * @param {Object} feedback - Feedback object from validator
+   */
+  handleClickFeedback(feedback) {
+    console.log('Click feedback:', feedback);
+    this.ui.displayClickFeedback(feedback);
+  }
+
+  /**
+   * Handle validation complete event
+   * @param {Object} feedback - Feedback object from validator
+   */
+  handleValidationComplete(feedback) {
+    console.log('✅ CAPTCHA validation complete:', feedback);
+    this.ui.displayClickFeedback(feedback);
+
+    // Stop displaying words and playing audio
+    this.ui.stopDisplayingWords();
+
+    // Optionally show a success message
+    this.ui.showSuccess('CAPTCHA Validation Complete! You can now submit the form.');
+
+    // Log the validation state for debugging
+    const state = this.validator.getState();
+    console.log('Final validation state:', state);
+  }
+
   // Cleanup method to stop the UI when CAPTCHA is done
   cleanup() {
     if (this.wordStartTimeout) {
@@ -274,6 +331,9 @@ export class CaptchaGenerator {
     }
     if (this.ui) {
       this.ui.destroy();
+    }
+    if (this.validator) {
+      this.validator.reset();
     }
   }
 }

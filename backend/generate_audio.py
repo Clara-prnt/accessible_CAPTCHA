@@ -27,11 +27,22 @@ try:
         print(json.dumps({'error': 'Scenario not found'}))
         sys.exit(1)
 
-    # Build audio text
-    audio_text = scenario['text'] + ' ' + ', '.join(scenario['words'])
-
+    # Build audio text with pauses between words
+    # Add introduction (scenario text)
     intro_words = scenario['text'].split()
     lead_in_seconds = max(0.5, len(intro_words) / 2.5)
+
+    # Create audio with explicit pauses between words for clarity
+    # Format: "word <pause> word <pause> word"
+    words = scenario['words']
+    audio_text = scenario['text'] + '. '
+
+    # Add words with pauses between them (using ellipsis to create natural pauses)
+    for i, word in enumerate(words):
+        audio_text += word
+        if i < len(words) - 1:
+            # Add pause marker (pyttsx3 will create a natural pause with comma)
+            audio_text += ', '
 
     # Create audio directory
     os.makedirs(output_dir, exist_ok=True)
@@ -59,3 +70,5 @@ except Exception as exc:
     sys.stdout.write(json.dumps({'error': str(exc)}))
     sys.stdout.flush()
     sys.exit(1)
+
+

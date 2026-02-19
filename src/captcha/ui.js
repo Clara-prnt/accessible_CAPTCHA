@@ -19,6 +19,10 @@ export class CaptchaUI {
     this.rateSelect = null;
     this.statusText = null;
     this.wordBoxToggleHandler = null;
+    this.currentlyDisplayedWord = null; // Track the word currently visible
+    this.clickHandler = null; // Handler for click validation
+    this.keyHandler = null; // Handler for keyboard validation
+    this.feedbackElement = null; // Element for validation feedback
   }
 
   /**
@@ -142,6 +146,89 @@ export class CaptchaUI {
   }
 
   /**
+   * Set a click handler for validation (detects clicks anywhere and Shift key)
+   * @param {Function} handler - Handler to call on any click or Shift press
+   */
+  setClickValidationHandler(handler) {
+    // Remove old handlers if they exist
+    if (this.clickHandler) {
+      document.removeEventListener('click', this.clickHandler);
+    }
+    if (this.keyHandler) {
+      document.removeEventListener('keydown', this.keyHandler);
+    }
+
+    // Click handler - detects mouse clicks anywhere
+    this.clickHandler = (event) => {
+      handler(event, 'click');
+    };
+
+    // Keyboard handler - detects Shift key press
+    this.keyHandler = (event) => {
+      // Check if Shift key was pressed
+      if (event.shiftKey && event.key === 'Shift') {
+        handler(event, 'keyboard');
+      }
+    };
+
+    // Attach both handlers to the document
+    document.addEventListener('click', this.clickHandler);
+    document.addEventListener('keydown', this.keyHandler);
+  }
+
+  /**
+   * Get the currently displayed word
+   * @returns {string} The word currently visible to the user
+   */
+  getCurrentWord() {
+    return this.currentlyDisplayedWord;
+  }
+
+  /**
+   * Display validation feedback to the user
+   * @param {Object} feedback - Feedback object from validator
+   */
+  displayClickFeedback(feedback) {
+    // Create feedback element if it doesn't exist
+    if (!this.feedbackElement) {
+      this.feedbackElement = document.createElement('div');
+      this.feedbackElement.id = 'validation-feedback';
+      this.feedbackElement.className = 'validation-feedback';
+      this.captchaContainer.appendChild(this.feedbackElement);
+    }
+
+    // Update feedback with colors and styling
+    this.feedbackElement.textContent = feedback.message;
+    this.feedbackElement.style.display = 'block';
+
+    // Show validation complete message with enhanced styling
+    if (feedback.isValidated) {
+      this.feedbackElement.textContent = feedback.message;
+      this.feedbackElement.style.color = '#00aa00';
+      this.feedbackElement.style.backgroundColor = '#c8e6c9';
+      this.feedbackElement.style.fontSize = '1.5em';
+      this.feedbackElement.style.padding = '1em';
+    } else if (feedback.message.includes('too slow') || feedback.message.includes('Too slow')) {
+      // Slow clicks reset
+      this.feedbackElement.style.color = '#ff9800';
+      this.feedbackElement.style.backgroundColor = '#ffe0b2';
+      this.feedbackElement.style.fontSize = '1.1em';
+      this.feedbackElement.style.padding = '0.5em';
+    } else {
+      // Normal feedback for each click
+      this.feedbackElement.style.color = '#2196f3';
+      this.feedbackElement.style.backgroundColor = '#e3f2fd';
+      this.feedbackElement.style.fontSize = '1.2em';
+      this.feedbackElement.style.padding = '0.5em';
+    }
+
+    this.feedbackElement.style.marginTop = '1em';
+    this.feedbackElement.style.borderRadius = '4px';
+    this.feedbackElement.style.fontWeight = 'bold';
+    this.feedbackElement.style.textAlign = 'center';
+  }
+
+  /**
    * Start displaying words one at a time
    */
   startDisplayingWords() {
@@ -172,6 +259,7 @@ export class CaptchaUI {
     }
 
     const currentWord = this.words[this.currentWordIndex];
+    this.currentlyDisplayedWord = currentWord; // Track the currently displayed word
 
     // Get random angle and coordinates
     const angle = this.getRandomAngle();
@@ -189,6 +277,7 @@ export class CaptchaUI {
     this.wordDisplayTimeout = setTimeout(() => {
       this.wordElement.classList.remove('fade-in');
       this.wordElement.classList.add('fade-out');
+      this.currentlyDisplayedWord = null; // Clear the currently displayed word
     }, this.wordDisplayDuration);
 
     // Move to next word index for the next iteration
@@ -258,11 +347,22 @@ export class CaptchaUI {
     if (this.wordBox && this.wordBoxToggleHandler) {
       this.wordBox.removeEventListener('click', this.wordBoxToggleHandler);
     }
+    if (this.clickHandler) {
+      // Remove click handler from document
+      document.removeEventListener('click', this.clickHandler);
+    }
+    if (this.keyHandler) {
+      // Remove keyboard handler from document
+      document.removeEventListener('keydown', this.keyHandler);
+    }
     if (this.wordElement) {
       this.wordElement.remove();
     }
     if (this.audioControls) {
       this.audioControls.remove();
+    }
+    if (this.feedbackElement) {
+      this.feedbackElement.remove();
     }
   }
 }

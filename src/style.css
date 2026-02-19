@@ -119,6 +119,18 @@ h2 {
   animation: fadeOut 0.3s ease-out forwards;
 }
 
+/* Validation feedback styles */
+#validation-feedback {
+  display: none;
+  margin-top: 1em;
+  padding: 0.5em;
+  border-radius: 4px;
+  font-size: 1.2em;
+  font-weight: bold;
+  text-align: center;
+  animation: fadeIn 0.3s ease-in forwards;
+}
+
 #links {
   padding-top: 1em;
   display: flex;
