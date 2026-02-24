@@ -66,17 +66,16 @@ h2 {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 2%;
+  width: 100%;
 }
 
 /* Audio player styles */
 .audio-controls {
-  width: 80%;
   display: flex;
   flex-direction: column;
   align-items: center;
+  width: 100%;
   gap: 2%;
-  padding: 2% 4%;
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 4px 14px rgba(0,0,0,0.1);
@@ -86,25 +85,27 @@ h2 {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  width: 80%;
   gap: 2%;
-  width: 100%;
-  padding-top: 2%;
+  margin: 15px 0;
+  padding: 0 10px;
 }
 
 #audio-toggle {
-  background: #000396;
+  background: linear-gradient(180deg, #060a8c, #01025e);
+  box-shadow: 0 6px 14px rgba(15, 27, 189, 0.25);
   color: white;
-  border: none;
   width: 80%;
   padding: 8px 16px;
-  border-radius: 8px;
+  margin: 15px 0;
+  border-radius: 30px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 #audio-toggle:hover {
-  background: #00013c;
+  background: linear-gradient(180deg, #060a8c, #01025e);
   transform: translateY(-1px);
 }
 
@@ -113,7 +114,7 @@ h2 {
 }
 
 #audio-status {
-  color: #000000;
+  color: black;
 }
 
 .audio-controls label {
@@ -125,7 +126,7 @@ h2 {
 
 select {
   border-radius: 6px;
-  border: 1px solid #e5e7eb;
+  border: 2px solid #e5e7eb;
   padding: 4px 8px;
   background: white;
   color: #000000;
@@ -285,6 +286,31 @@ footer {
     width: 100%;
   }
   form {
+    width: 100%;
+  }
+
+  /* Audio controls responsive */
+  .audio-settings {
+    flex-direction: column;
+    width: 90%;
+    align-items: stretch;
+    gap: 1em;
+  }
+
+  #audio-toggle {
+    width: 90%;
+  }
+
+  select {
+    width: 100%;
+  }
+
+  .audio-settings label,
+  .audio-settings .control {
+    width: 100%;
+  }
+
+  input[type="range"] {
     width: 100%;
   }
 }
