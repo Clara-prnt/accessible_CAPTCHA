@@ -1,4 +1,10 @@
 <?php
+/**
+ * ValidateCaptcha.php
+ * Validate CAPTCHA answer on the server side
+ * This is the final validation endpoint
+ */
+
 header('Content-Type: application/json');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -7,7 +13,6 @@ require_once __DIR__ . '/SecurityConfig.php';
 require_once __DIR__ . '/SessionManager.php';
 require_once __DIR__ . '/RateLimiter.php';
 require_once __DIR__ . '/InputValidator.php';
-require_once __DIR__ . '/ScenarioLoader.php';
 
 // Set security headers
 foreach (SecurityConfig::SECURITY_HEADERS as $header => $value) {
@@ -54,31 +59,17 @@ try {
     $input = json_decode(file_get_contents('php://input'), true);
 
     // Validate input structure
-    if (!InputValidator::validateJSONInput($input, ['scenarioId', 'targetWord', 'csrf_token', 'captcha_session_id'])) {
+    if (!InputValidator::validateJSONInput($input, ['csrf_token', 'captcha_session_id', 'click_count'])) {
         http_response_code(400);
         echo json_encode(['error' => 'Missing required parameters']);
         exit;
     }
 
-    // Validate and extract parameters
-    $scenarioId = $input['scenarioId'];
-    $targetWord = $input['targetWord'];
     $csrfToken = $input['csrf_token'];
     $captchaSessionId = $input['captcha_session_id'];
+    $clickCount = $input['click_count'];
 
     // Validate parameter formats
-    if (!InputValidator::validateScenarioId($scenarioId)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid scenario ID']);
-        exit;
-    }
-
-    if (!InputValidator::validateTargetWord($targetWord)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid target word']);
-        exit;
-    }
-
     if (!InputValidator::validateCSRFTokenFormat($csrfToken)) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid CSRF token format']);
@@ -88,6 +79,12 @@ try {
     if (!InputValidator::validateCaptchaSessionId($captchaSessionId)) {
         http_response_code(400);
         echo json_encode(['error' => 'Invalid session ID']);
+        exit;
+    }
+
+    if (!InputValidator::validateClickData($clickCount)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid click data']);
         exit;
     }
 
@@ -106,60 +103,72 @@ try {
         exit;
     }
 
-    // Load scenarios from JSON file
-    $scenario = loadScenariosFromJSONFile($scenarioId);
-
-    // Prepare the Python command
-    $pythonScript = __DIR__ . '/generate_audio.py';
-    $command = "python \"$pythonScript\" \"$scenarioId\" \"$targetWord\" 2>&1";
-
-    // Execute the Python script
-    $output = shell_exec($command);
-
-    $output = isset($output) ? $output : '';
-    if (strpos($output, "\x00") !== false && function_exists('iconv')) {
-        $output = iconv('UTF-16LE', 'UTF-8', $output);
-    }
-    $output = trim($output);
-
-    // Parse the response from Python
-    $result = json_decode($output, true);
-
-    if ($result === null) {
-        throw new Exception('Invalid response from Python script: ' . $output);
-    }
-
-    if (isset($result['error'])) {
-        http_response_code(500);
-        echo json_encode(['error' => $result['error']]);
+    // Check if all required data is present
+    if (!isset($captchaData['targetWord']) || !isset($captchaData['clicksRequired'])) {
+        http_response_code(403);
+        echo json_encode(['error' => 'CAPTCHA session incomplete']);
         exit;
     }
 
-    // Update CAPTCHA session data
-    $audioData = [
-        'targetWord' => $targetWord,
-        'scenarioId' => $scenarioId,
-        'leadInSeconds' => $result['leadInSeconds'] ?? 0,
-        'duration' => $result['duration'] ?? 0,
-        'audioPath' => $result['audioPath'] ?? '',
-        'created_at' => time()
+    // Validate the answer
+    $targetWord = $captchaData['targetWord'];
+    $clicksRequired = $captchaData['clicksRequired'];
+
+    // Check if the client clicked the correct number of times
+    if ($clickCount < $clicksRequired) {
+        http_response_code(400);
+        echo json_encode([
+            'success' => false,
+            'message' => 'Not enough clicks. Required: ' . $clicksRequired,
+            'clicks_required' => $clicksRequired,
+            'clicks_received' => $clickCount
+        ]);
+        exit;
+    }
+
+    // Success! User passed the CAPTCHA
+    // Generate a validation token that can be verified later
+    $validationToken = SecurityConfig::generateToken();
+
+    // Store the validation result in the session
+    SessionManager::initializeSession();
+    if (!isset($_SESSION['CAPTCHA_VALIDATIONS'])) {
+        $_SESSION['CAPTCHA_VALIDATIONS'] = [];
+    }
+    $_SESSION['CAPTCHA_VALIDATIONS'][$captchaSessionId] = [
+        'validation_token' => $validationToken,
+        'validated_at' => time(),
+        'target_word' => $targetWord,
+        'clicks_required' => $clicksRequired,
+        'clicks_received' => $clickCount
     ];
-    SessionManager::setCaptchaData($captchaSessionId, array_merge($captchaData, $audioData));
+
+    // Clean up the CAPTCHA session
+    SessionManager::destroyCaptchaSession($captchaSessionId);
+
+    // Record success to reduce rate limit pressure
+    RateLimiter::recordSuccess('validation_requests');
 
     // Generate new CSRF token for next request
     $newCSRFToken = SessionManager::generateCSRFToken();
 
-    // Return the audio response with security tokens
-    echo json_encode(array_merge($result, [
+    http_response_code(200);
+    echo json_encode([
+        'success' => true,
+        'message' => 'CAPTCHA validated successfully!',
+        'validation_token' => $validationToken,
         'csrf_token' => $newCSRFToken,
-        'captcha_session_id' => $captchaSessionId,
-        'success' => true
-    ]));
+        'target_word' => $targetWord,
+        'clicks_required' => $clicksRequired,
+        'clicks_received' => $clickCount
+    ]);
 
 } catch (Exception $e) {
     http_response_code(500);
     echo json_encode([
-        'error' => 'Failed to generate audio',
+        'success' => false,
+        'error' => 'Failed to validate CAPTCHA',
         'message' => $e->getMessage()
     ]);
 }
+

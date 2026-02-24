@@ -26,23 +26,30 @@ export class CaptchaGenerator {
     this.wordStartTimestamp = 0;
     this.wordsStarted = false;
     this.isValidationActive = false; // Only count clicks when audio is playing
+
+    // Security tokens (initialized by initializeCaptchaSession)
+    this.csrfToken = null;
+    this.captchaSessionId = null;
   }
 
   async initialize() {
     try {
-      // Load scenarios from the JSON file
+      // Step 1: Initialize CAPTCHA session and get security tokens
+      await this.initializeCaptchaSession();
+
+      // Step 2: Load scenarios from the JSON file
       await this.loadScenarios();
 
-      // Generate a random scenario with a target word and number of clicks required
+      // Step 3: Generate a random scenario with a target word and number of clicks required
       this.generateScenario();
 
-      // Display instructions to the user with the target word and number of clicks required
+      // Step 4: Display instructions to the user with the target word and number of clicks required
       this.displayInstructions();
 
-      // Start audio (and word display will sync with it)
+      // Step 5: Start audio (and word display will sync with it)
       await this.startAudio();
 
-      // Load words from the backend
+      // Step 6: Load words from the backend
       await this.loadTextboxWords();
     } catch (error) {
       console.error('Error initializing CAPTCHA:', error);
@@ -50,9 +57,44 @@ export class CaptchaGenerator {
     }
   }
 
+  async initializeCaptchaSession() {
+    try {
+      console.log('🔐 Initializing CAPTCHA security session...');
+      const response = await fetch('/backend/InitCaptcha.php', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.success || !data.csrf_token || !data.captcha_session_id) {
+        throw new Error('Failed to get security tokens from InitCaptcha');
+      }
+
+      this.csrfToken = data.csrf_token;
+      this.captchaSessionId = data.captcha_session_id;
+
+      console.log('✅ Security session initialized');
+      console.log('   CSRF Token:', this.csrfToken.substring(0, 10) + '...');
+      console.log('   Session ID:', this.captchaSessionId.substring(0, 10) + '...');
+    } catch (error) {
+      console.error('❌ Failed to initialize CAPTCHA session:', error);
+      throw new Error('Failed to initialize CAPTCHA security: ' + error.message);
+    }
+  }
+
   async loadScenarios() {
     try {
-      const response = await fetch('./src/data/scenarios.json');
+      const response = await fetch('/src/data/scenarios.json');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       const data = await response.json();
       this.scenarios = data.scenarios;
     } catch (error) {
@@ -116,6 +158,8 @@ export class CaptchaGenerator {
           scenarioId: this.scenario.id,
           targetWord: this.targetWord,
           clicksRequired: this.clicksRequired,
+          csrf_token: this.csrfToken,
+          captcha_session_id: this.captchaSessionId,
         }),
       });
 
@@ -139,6 +183,12 @@ export class CaptchaGenerator {
 
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Update CSRF token for next request
+      if (data.csrf_token) {
+        this.csrfToken = data.csrf_token;
+        console.log('✅ CSRF token updated');
       }
 
       console.log('✅ Words received:', data.words);
@@ -173,6 +223,8 @@ export class CaptchaGenerator {
   async startAudio() {
     try {
       const apiUrl = '/backend/GenerateAudio.php';
+      console.log('📡 Generating audio...');
+
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -181,10 +233,14 @@ export class CaptchaGenerator {
         body: JSON.stringify({
           scenarioId: this.scenario.id,
           targetWord: this.targetWord,
+          csrf_token: this.csrfToken,
+          captcha_session_id: this.captchaSessionId,
         }),
       });
 
       if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ GenerateAudio error response:', errorData.substring(0, 200));
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
@@ -192,6 +248,12 @@ export class CaptchaGenerator {
 
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Update CSRF token for next request
+      if (data.csrf_token) {
+        this.csrfToken = data.csrf_token;
+        console.log('✅ CSRF token updated');
       }
 
       const leadInSeconds = Number(data.leadInSeconds ?? 0);
