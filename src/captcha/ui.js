@@ -77,12 +77,12 @@ export class CaptchaUI {
     this.playPauseButton = document.createElement('button');
     this.playPauseButton.type = 'button';
     this.playPauseButton.id = 'audio-toggle';
-    this.playPauseButton.textContent = 'Play';
+    this.playPauseButton.textContent = '▶ Play';
     this.playPauseButton.setAttribute('aria-pressed', 'false');
     this.playPauseButton.addEventListener('click', onToggle);
 
     const volumeLabel = document.createElement('label');
-    volumeLabel.textContent = 'Volume';
+    volumeLabel.textContent = '🔊 Volume';
     this.volumeInput = document.createElement('input');
     this.volumeInput.type = 'range';
     this.volumeInput.min = '0';
@@ -96,7 +96,7 @@ export class CaptchaUI {
     volumeLabel.appendChild(this.volumeInput);
 
     const rateLabel = document.createElement('label');
-    rateLabel.textContent = 'Speed';
+    rateLabel.textContent = '⚡ Speed';
     this.rateSelect = document.createElement('select');
     const rates = [0.75, 1, 1.25, 1.5];
     rates.forEach((rate) => {
@@ -116,17 +116,21 @@ export class CaptchaUI {
     this.statusText.id = 'audio-status';
     this.statusText.textContent = '';
 
+    const audioSettings = document.createElement('div');
+    audioSettings.className = 'audio-settings';
+    audioSettings.appendChild(volumeLabel);
+    audioSettings.appendChild(rateLabel);
+    audioSettings.appendChild(this.statusText);
+
     this.audioControls.appendChild(this.playPauseButton);
-    this.audioControls.appendChild(volumeLabel);
-    this.audioControls.appendChild(rateLabel);
-    this.audioControls.appendChild(this.statusText);
+    this.audioControls.appendChild(audioSettings);
 
     this.captchaContainer.appendChild(this.audioControls);
   }
 
   setPlayPauseState(isPlaying) {
     if (!this.playPauseButton) return;
-    this.playPauseButton.textContent = isPlaying ? 'Pause' : 'Play';
+    this.playPauseButton.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
     this.playPauseButton.setAttribute('aria-pressed', isPlaying ? 'true' : 'false');
   }
 
