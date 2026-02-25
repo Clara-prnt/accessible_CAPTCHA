@@ -7,17 +7,17 @@
 class SecurityConfig {
     // CSRF Token Configuration
     const CSRF_TOKEN_LENGTH = 64;  // 32 bytes = 64 hex characters
-    const CSRF_TOKEN_LIFETIME = 3600; // 1 hour in seconds
+    const CSRF_TOKEN_LIFETIME = 3600; // 1 hour
 
     // Session Configuration
     const SESSION_LIFETIME = 1800; // 30 minutes
     const SESSION_TIMEOUT_WARNING = 300; // 5 minutes before timeout
 
     // Rate Limiting Configuration
-    const RATE_LIMIT_INIT_REQUESTS = 5; // Max init requests
-    const RATE_LIMIT_INIT_WINDOW = 900; // 15 minutes in seconds
-    const RATE_LIMIT_VALIDATION_REQUESTS = 10; // Max validation attempts
-    const RATE_LIMIT_VALIDATION_WINDOW = 3600; // 1 hour in seconds
+    const RATE_LIMIT_INIT_REQUESTS = 50; // Max init requests (5) | for testing, x10
+    const RATE_LIMIT_INIT_WINDOW = 60; // 15 minutes (900) | for testing, 1 minute
+    const RATE_LIMIT_VALIDATION_REQUESTS = 100; // Max validation attempts (10) | for testing, x10
+    const RATE_LIMIT_VALIDATION_WINDOW = 300; // 1 hour (3600) | for testing, 5 minutes (300)
 
     // Captcha Configuration
     const CAPTCHA_SESSION_LIFETIME = 600; // 10 minutes

@@ -22,7 +22,7 @@ export class CaptchaUI {
     this.currentlyDisplayedWord = null; // Track the word currently visible
     this.clickHandler = null; // Handler for click validation
     this.keyHandler = null; // Handler for keyboard validation
-    this.feedbackElement = null; // Element for validation feedback
+    //this.feedbackElement = null; // Element for validation feedback
   }
 
   /**
@@ -192,45 +192,14 @@ export class CaptchaUI {
    * Display validation feedback to the user
    * @param {Object} feedback - Feedback object from validator
    */
-  displayClickFeedback(feedback) {
-    // Create feedback element if it doesn't exist
-    if (!this.feedbackElement) {
-      this.feedbackElement = document.createElement('div');
-      this.feedbackElement.id = 'validation-feedback';
-      this.feedbackElement.className = 'validation-feedback';
-      this.captchaContainer.appendChild(this.feedbackElement);
+  /*displayClickFeedback(feedback) {
+    // Use the existing validation element from the HTML
+    const validationElement = document.getElementById('validation');
+    if (validationElement) {
+      validationElement.textContent = feedback.message;
+      validationElement.style.display = 'block';
     }
-
-    // Update feedback with colors and styling
-    this.feedbackElement.textContent = feedback.message;
-    this.feedbackElement.style.display = 'block';
-
-    // Show validation complete message with enhanced styling
-    if (feedback.isValidated) {
-      this.feedbackElement.textContent = feedback.message;
-      this.feedbackElement.style.color = '#00aa00';
-      this.feedbackElement.style.backgroundColor = '#c8e6c9';
-      this.feedbackElement.style.fontSize = '1.5em';
-      this.feedbackElement.style.padding = '1em';
-    } else if (feedback.message.includes('too slow') || feedback.message.includes('Too slow')) {
-      // Slow clicks reset
-      this.feedbackElement.style.color = '#ff9800';
-      this.feedbackElement.style.backgroundColor = '#ffe0b2';
-      this.feedbackElement.style.fontSize = '1.1em';
-      this.feedbackElement.style.padding = '0.5em';
-    } else {
-      // Normal feedback for each click
-      this.feedbackElement.style.color = '#2196f3';
-      this.feedbackElement.style.backgroundColor = '#e3f2fd';
-      this.feedbackElement.style.fontSize = '1.2em';
-      this.feedbackElement.style.padding = '0.5em';
-    }
-
-    this.feedbackElement.style.marginTop = '1em';
-    this.feedbackElement.style.borderRadius = '4px';
-    this.feedbackElement.style.fontWeight = 'bold';
-    this.feedbackElement.style.textAlign = 'center';
-  }
+  }*/
 
   /**
    * Start displaying words one at a time
@@ -314,7 +283,6 @@ export class CaptchaUI {
     const errorElement = document.getElementById('error');
     if (errorElement) {
       errorElement.textContent = message;
-      errorElement.style.color = 'red';
       errorElement.style.display = 'block';
     }
   }
@@ -335,11 +303,10 @@ export class CaptchaUI {
    * @param {string} message - The success message to display
    */
   showSuccess(message) {
-    const errorElement = document.getElementById('error');
-    if (errorElement) {
-      errorElement.textContent = message;
-      errorElement.style.color = 'green';
-      errorElement.style.display = 'block';
+    const validationElement = document.getElementById('validation');
+    if (validationElement) {
+      validationElement.textContent = message;
+      validationElement.style.display = 'block';
     }
   }
 
@@ -365,8 +332,6 @@ export class CaptchaUI {
     if (this.audioControls) {
       this.audioControls.remove();
     }
-    if (this.feedbackElement) {
-      this.feedbackElement.remove();
-    }
+    this.clearError();
   }
 }
