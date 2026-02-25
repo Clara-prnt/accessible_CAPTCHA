@@ -3,6 +3,10 @@ import { CaptchaGenerator } from './captcha/generator.js'
 
 const form = document.querySelector('#form form');
 const captchaCard = document.getElementById('captcha_card');
+const successCard = document.getElementById('success_card');
+const dashboard = document.getElementById('dashboard');
+const formContainer = document.getElementById('form');
+const successOkButton = document.getElementById('success-ok-button');
 let captchaInstance = null;
 
 form.addEventListener('submit', async (e) => {
@@ -16,3 +20,55 @@ form.addEventListener('submit', async (e) => {
   captchaInstance = new CaptchaGenerator();
   await captchaInstance.initialize();
 });
+
+/**
+ * Listen for CAPTCHA validation completion
+ */
+window.addEventListener('captcha-validated', (event) => {
+  console.log('📋 CAPTCHA validated event received');
+
+  // Hide the CAPTCHA card and form
+  captchaCard.hidden = true;
+  formContainer.hidden = true;
+
+  // Show the success message
+  successCard.hidden = false;
+
+  // Handle the OK button click
+  successOkButton.addEventListener('click', () => {
+    successCard.hidden = true;
+    dashboard.hidden = false;
+
+    // Optional: Redirect to a specific URL after a delay
+    // setTimeout(() => {
+    //   window.location.href = '/dashboard'; // or any other URL
+    // }, 2000);
+  });
+});
+
+/**
+ * Listen for CAPTCHA validation failure (all attempts exhausted)
+ */
+window.addEventListener('captcha-failed', (event) => {
+  console.log('❌ CAPTCHA failed event received');
+
+  // Hide the CAPTCHA card and form
+  captchaCard.hidden = true;
+  formContainer.hidden = true;
+
+  // Show failure message in the validation element
+  const failureMessage = document.getElementById('validation');
+  if (failureMessage) {
+    failureMessage.textContent = event.detail.feedback.message;
+    failureMessage.style.display = 'block';
+    failureMessage.style.backgroundColor = '#ffe5e5';
+    failureMessage.style.border = '1px solid #FF0000';
+    failureMessage.style.color = 'black';
+  }
+
+  // Optional: Auto-redirect to login page after delay
+  setTimeout(() => {
+    window.location.reload(); // Reload to try again
+  }, 5000);
+});
+

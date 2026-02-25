@@ -1,5 +1,10 @@
 /* Global styles */
 
+/* Ensure hidden attribute works correctly */
+[hidden] {
+  display: none !important;
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -246,6 +251,78 @@ input[type="range"] {
   margin-top: 1em;
   text-align: center;
   font-weight: bold;
+}
+
+/* Success Message and OK Button Styles */
+#success-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+#success-message h2 {
+  color: #28a745;
+  font-size: 2em;
+  margin: 0;
+}
+
+#success-message p {
+  color: #242424;
+  font-size: 1.1em;
+  margin: 0;
+}
+
+.success-button {
+  background: linear-gradient(180deg, #28a745, #218838);
+  color: white;
+  border: none;
+  padding: 12px 32px;
+  font-size: 1.1em;
+  font-weight: bold;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+.success-button:hover {
+  background: linear-gradient(180deg, #218838, #1e7e34);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4);
+}
+
+.success-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.3);
+}
+
+/* Dashboard Styles */
+#dashboard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  padding: 2rem;
+  text-align: center;
+}
+
+#dashboard[hidden] {
+  display: none;
+}
+
+#dashboard h2 {
+  color: #ffffff;
+  font-size: 2.5em;
+  margin: 1rem 0;
+}
+
+#dashboard p {
+  color: rgba(255, 255, 255, 0.87);
+  font-size: 1.2em;
+  margin: 0.5rem 0;
 }
 
 /* Form styles */

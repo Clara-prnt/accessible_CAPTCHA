@@ -192,14 +192,14 @@ export class CaptchaUI {
    * Display validation feedback to the user
    * @param {Object} feedback - Feedback object from validator
    */
-  /*displayClickFeedback(feedback) {
+  displayClickFeedback(feedback) {
     // Use the existing validation element from the HTML
     const validationElement = document.getElementById('validation');
     if (validationElement) {
       validationElement.textContent = feedback.message;
       validationElement.style.display = 'block';
     }
-  }*/
+  }
 
   /**
    * Start displaying words one at a time
@@ -302,11 +302,29 @@ export class CaptchaUI {
    * Show a success message
    * @param {string} message - The success message to display
    */
-  showSuccess(message) {
+  /*showSuccess(message) {
     const validationElement = document.getElementById('validation');
     if (validationElement) {
       validationElement.textContent = message;
       validationElement.style.display = 'block';
+    }
+  }*/
+
+  /**
+   * Hide audio controls
+   */
+  hideAudioControls() {
+    if (this.audioControls) {
+      this.audioControls.style.display = 'none';
+    }
+  }
+
+  /**
+   * Hide word display
+   */
+  hideWordDisplay() {
+    if (this.wordBox) {
+      this.wordBox.style.display = 'none';
     }
   }
 

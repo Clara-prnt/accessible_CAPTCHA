@@ -115,9 +115,8 @@ export class CaptchaGenerator {
     // Random number of clicks required between 2 and 3
     this.clicksRequired = Math.floor(Math.random() * 2) + 2;
 
-    // Initialize the validator with only the clicks required
-    // (Clicks are now detected anywhere on screen, not tied to a specific word)
-    this.validator = new CaptchaValidator(this.clicksRequired);
+    // Initialize the validator with clicks required AND target word
+    this.validator = new CaptchaValidator(this.clicksRequired, this.targetWord);
 
     // Set up validation callbacks
     this.validator.onClickFeedback((feedback) => {
@@ -126,6 +125,11 @@ export class CaptchaGenerator {
 
     this.validator.onValidation((feedback) => {
       this.handleValidationComplete(feedback);
+    });
+
+    // Set up failure callback for exhausted attempts
+    this.validator.onFailure((feedback) => {
+      this.handleValidationFailed(feedback);
     });
   }
 
@@ -209,10 +213,13 @@ export class CaptchaGenerator {
           return;
         }
 
-        // Register the input (click or keyboard)
-        const feedback = this.validator.registerClick();
+        // Get the currently displayed word
+        const currentWord = this.ui.getCurrentWord();
+
+        // Register the input (click or keyboard) with the current word
+        const feedback = this.validator.registerClick(currentWord);
         const method = inputType === 'keyboard' ? 'Shift key' : 'click';
-        console.log(`${method} detected:`, feedback);
+        console.log(`${method} detected on word "${currentWord}":`, feedback);
       });
     } catch (error) {
       console.error('Error loading textbox words:', error);
@@ -369,17 +376,66 @@ export class CaptchaGenerator {
    */
   handleValidationComplete(feedback) {
     console.log('✅ CAPTCHA validation complete:', feedback);
-    this.ui.displayClickFeedback(feedback);
 
-    // Stop displaying words and playing audio
+    // Stop audio immediately
+    this.audio.stop();
+
+    // Stop displaying words
     this.ui.stopDisplayingWords();
 
-    // Optionally show a success message
-    this.ui.showSuccess('CAPTCHA Validation Complete! You can now submit the form.');
+    // Hide audio controls and word display
+    this.ui.hideAudioControls();
+    this.ui.hideWordDisplay();
+
+    // Display validation feedback
+    this.ui.displayClickFeedback(feedback);
+
+    // Emit a custom event to notify about validation completion
+    const validationEvent = new CustomEvent('captcha-validated', {
+      detail: {
+        feedback: feedback,
+        validator: this.validator.getState()
+      }
+    });
+    window.dispatchEvent(validationEvent);
 
     // Log the validation state for debugging
     const state = this.validator.getState();
     console.log('Final validation state:', state);
+  }
+
+  /**
+   * Handle validation failed event (all attempts exhausted)
+   * @param {Object} feedback - Feedback object from validator
+   */
+  handleValidationFailed(feedback) {
+    console.log('❌ CAPTCHA validation failed:', feedback);
+
+    // Stop audio immediately
+    this.audio.stop();
+
+    // Stop displaying words
+    this.ui.stopDisplayingWords();
+
+    // Hide audio controls and word display
+    this.ui.hideAudioControls();
+    this.ui.hideWordDisplay();
+
+    // Display failure feedback
+    this.ui.displayClickFeedback(feedback);
+
+    // Emit a custom event to notify about validation failure
+    const failureEvent = new CustomEvent('captcha-failed', {
+      detail: {
+        feedback: feedback,
+        validator: this.validator.getState()
+      }
+    });
+    window.dispatchEvent(failureEvent);
+
+    // Log the failure state for debugging
+    const state = this.validator.getState();
+    console.log('Final failure state:', state);
   }
 
   // Cleanup method to stop the UI when CAPTCHA is done
