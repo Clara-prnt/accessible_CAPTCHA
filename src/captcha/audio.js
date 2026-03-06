@@ -34,6 +34,11 @@ export class CaptchaAudio {
   }
 
   async load(url) {
+    // Cancel any ongoing speech synthesis when loading audio
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
+
     return new Promise((resolve, reject) => {
       const onReady = () => {
         cleanup();
@@ -56,6 +61,10 @@ export class CaptchaAudio {
   }
 
   async play() {
+    // Cancel any ongoing speech synthesis to prevent conflicts
+    if (window.speechSynthesis && window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+    }
     return this.audio.play();
   }
 

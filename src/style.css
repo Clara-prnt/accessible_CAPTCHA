@@ -380,6 +380,120 @@ footer {
 
 /* Responsive styles */
 
+/* ============================================
+   ACCESSIBILITY STYLES
+   ============================================ */
+
+/* Screen reader only content */
+.sr-only,
+#captcha-aria-live {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+/* Skip to main content link */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #000;
+  color: #fff;
+  padding: 8px;
+  text-decoration: none;
+  z-index: 100;
+}
+
+.skip-link:focus {
+  top: 0;
+}
+
+/* Keyboard help dialog */
+.keyboard-help-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  color: black;
+  padding: 2rem;
+  border: 2px solid #000;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  max-width: 500px;
+  z-index: 10000;
+}
+
+.keyboard-help-dialog h2 {
+  margin-top: 0;
+  color: #000;
+}
+
+.keyboard-help-dialog ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.keyboard-help-dialog li {
+  margin: 0.5rem 0;
+  color: #000;
+}
+
+.keyboard-help-dialog kbd {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 0.9em;
+}
+
+.keyboard-help-dialog button {
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+}
+
+/* Clear default focus outline and add custom one */
+button:focus,
+button:focus-visible,
+input:focus,
+input:focus-visible,
+select:focus,
+select:focus-visible {
+  outline: 3px solid #060a8c;
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  button, input, select {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support for focus indicators */
+@media (prefers-color-scheme: dark) {
+  button:focus,
+  button:focus-visible {
+    outline-color: #c3c3c3;
+  }
+}
+
+/* ============================================
+   RESPONSIVE STYLES
+   ============================================ */
+
 @media (max-width: 768px) {
   body {
     padding: 0 3vh;

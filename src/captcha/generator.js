@@ -10,9 +10,11 @@
 import { CaptchaUI } from './ui.js';
 import { CaptchaAudio } from './audio.js';
 import { CaptchaValidator } from './validator.js';
+import { AccessibilityManager } from './accessibility.js';
 
 export class CaptchaGenerator {
   constructor() {
+    // ...existing code...
     this.targetWord = null;
     this.clicksRequired = null;
     this.scenario = null;
@@ -20,6 +22,7 @@ export class CaptchaGenerator {
     this.ui = new CaptchaUI();
     this.audio = new CaptchaAudio();
     this.validator = null; // Will be initialized after generating the scenario
+    this.accessibility = new AccessibilityManager(); // Initialize accessibility manager
     this.leadInMs = 0;
     this.wordStartTimeout = null;
     this.wordStartRemainingMs = 0;
@@ -34,6 +37,10 @@ export class CaptchaGenerator {
 
   async initialize() {
     try {
+      // Step 0: Initialize accessibility features
+      this.accessibility.initialize();
+      this.accessibility.announce('CAPTCHA initialization starting', 'polite');
+
       // Step 1: Initialize CAPTCHA session and get security tokens
       await this.initializeCaptchaSession();
 
@@ -137,8 +144,11 @@ export class CaptchaGenerator {
     const explanation = document.getElementById('explanation');
     explanation.textContent =
         `You will hear an everyday situation, and see random words appear.
-        Click ${this.clicksRequired} times rapidly anywhere on the screen OR press Shift ${this.clicksRequired} times when you hear/see "${this.targetWord}".
+        Press shift ${this.clicksRequired} times rapidly when you hear or see "${this.targetWord}".
         To start the verification, click on the play button once. You can listen to the audio multiple times.`;
+
+    // Announce instructions to screen readers
+    this.accessibility.announceInstructions(this.targetWord, this.clicksRequired);
   }
 
   async loadTextboxWords() {
@@ -368,6 +378,9 @@ export class CaptchaGenerator {
   handleClickFeedback(feedback) {
     console.log('Click feedback:', feedback);
     this.ui.displayClickFeedback(feedback);
+
+    // Announce feedback to screen readers
+    this.accessibility.announceFeedback(feedback);
   }
 
   /**
@@ -389,6 +402,9 @@ export class CaptchaGenerator {
 
     // Display validation feedback
     this.ui.displayClickFeedback(feedback);
+
+    // Announce success to screen readers
+    this.accessibility.announceValidationComplete();
 
     // Emit a custom event to notify about validation completion
     const validationEvent = new CustomEvent('captcha-validated', {
@@ -424,6 +440,9 @@ export class CaptchaGenerator {
     // Display failure feedback
     this.ui.displayClickFeedback(feedback);
 
+    // Announce failure to screen readers
+    this.accessibility.announceValidationFailed();
+
     // Emit a custom event to notify about validation failure
     const failureEvent = new CustomEvent('captcha-failed', {
       detail: {
@@ -453,5 +472,8 @@ export class CaptchaGenerator {
     if (this.validator) {
       this.validator.reset();
     }
+    /*if (this.accessibility) {
+      this.accessibility.destroy();
+    }*/
   }
 }
