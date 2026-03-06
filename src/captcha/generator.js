@@ -11,6 +11,7 @@ import { CaptchaUI } from './ui.js';
 import { CaptchaAudio } from './audio.js';
 import { CaptchaValidator } from './validator.js';
 import { AccessibilityManager } from './accessibility.js';
+import { CaptchaActions } from './actions.js';
 
 export class CaptchaGenerator {
   constructor() {
@@ -23,6 +24,7 @@ export class CaptchaGenerator {
     this.audio = new CaptchaAudio();
     this.validator = null; // Will be initialized after generating the scenario
     this.accessibility = new AccessibilityManager(); // Initialize accessibility manager
+    this.actions = new CaptchaActions(this);
     this.leadInMs = 0;
     this.wordStartTimeout = null;
     this.wordStartRemainingMs = 0;
@@ -40,6 +42,9 @@ export class CaptchaGenerator {
       // Step 0: Initialize accessibility features
       this.accessibility.initialize();
       this.accessibility.announce('CAPTCHA initialization starting', 'polite');
+
+      // Step 0.5: Initialize support/reload/report actions
+      this.actions.initialize();
 
       // Step 1: Initialize CAPTCHA session and get security tokens
       await this.initializeCaptchaSession();
@@ -471,6 +476,9 @@ export class CaptchaGenerator {
     }
     if (this.validator) {
       this.validator.reset();
+    }
+    if (this.actions) {
+      this.actions.cleanup();
     }
     /*if (this.accessibility) {
       this.accessibility.destroy();
