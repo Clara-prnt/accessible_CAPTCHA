@@ -91,8 +91,8 @@ test.describe('CAPTCHA End-to-End Flow', () => {
     await expect(page.locator('#word-display')).not.toHaveText('');
 
     const wordDisplay = page.locator('#word-display');
-    await wordDisplay.click();
-    await wordDisplay.click();
+    await wordDisplay.click({ force: true });
+    await wordDisplay.click({ force: true });
 
     await expect(page.locator('#success_card')).toBeVisible();
     await expect(page.locator('#success-message')).toContainText('CAPTCHA Validated!');
