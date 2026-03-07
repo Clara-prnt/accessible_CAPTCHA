@@ -466,7 +466,6 @@ export class CaptchaActions {
         this.showError('Failed to submit report. Please try again.');
         return;
       }
-      //console.log('✅ Problem report submitted successfully:', result.report_id);
 
       // Show success message
       const content = modal.querySelector('.modal-content');
