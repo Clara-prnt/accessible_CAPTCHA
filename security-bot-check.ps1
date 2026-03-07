@@ -86,6 +86,50 @@ function Invoke-JsonRequest {
     }
 }
 
+function Get-HeaderValue {
+    param(
+        [object]$Headers,
+        [string]$Name
+    )
+
+    if ($null -eq $Headers -or [string]::IsNullOrWhiteSpace($Name)) {
+        return ''
+    }
+
+    # IDictionary / hashtable style (Windows PowerShell)
+    if ($Headers -is [System.Collections.IDictionary]) {
+        if ($Headers.Contains($Name)) {
+            return [string]$Headers[$Name]
+        }
+
+        foreach ($key in $Headers.Keys) {
+            if ([string]::Equals([string]$key, $Name, [System.StringComparison]::OrdinalIgnoreCase)) {
+                return [string]$Headers[$key]
+            }
+        }
+    }
+
+    # HttpResponseHeaders style (PowerShell 7 / .NET HttpClient)
+    if ($Headers.PSObject.Methods.Name -contains 'TryGetValues') {
+        $values = $null
+        if ($Headers.TryGetValues($Name, [ref]$values)) {
+            return [string]($values -join ',')
+        }
+    }
+
+    # Last fallback: dynamic property
+    try {
+        $value = $Headers.$Name
+        if ($null -ne $value) {
+            return [string]$value
+        }
+    } catch {
+        # no-op
+    }
+
+    return ''
+}
+
 if ($ResetRateLimit) {
     $ratePath = Join-Path $PSScriptRoot 'tmp\rate_limit'
     if (Test-Path $ratePath) {
@@ -154,7 +198,7 @@ for ($i = 1; $i -le $MaxInitFlood; $i++) {
     $resp = Invoke-JsonRequest -Method 'POST' -Url "$BaseUrl/InitCaptcha.php" -Body @{}
     if ($resp.Status -eq 429) {
         $initBlockedAt = $i
-        $initRetryAfter = [string]$resp.Headers['Retry-After']
+        $initRetryAfter = Get-HeaderValue -Headers $resp.Headers -Name 'Retry-After'
         break
     }
 }
@@ -172,7 +216,7 @@ for ($i = 1; $i -le $MaxValidationFlood; $i++) {
     }
     if ($resp.Status -eq 429) {
         $validateBlockedAt = $i
-        $validateRetryAfter = [string]$resp.Headers['Retry-After']
+        $validateRetryAfter = Get-HeaderValue -Headers $resp.Headers -Name 'Retry-After'
         break
     }
 }
