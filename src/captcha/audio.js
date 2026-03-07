@@ -7,6 +7,10 @@ export class CaptchaAudio {
   constructor() {
     this.audio = new Audio();
     this.audio.preload = 'auto';
+    this.ambientAudio = new Audio();
+    this.ambientAudio.preload = 'auto';
+    this.ambientAudio.loop = true;
+    this.ambientVolumeRatio = 0.22;
     this.handlers = {
       onPlay: null,
       onPause: null,
@@ -15,12 +19,16 @@ export class CaptchaAudio {
     };
 
     this.audio.addEventListener('play', () => {
+      this.syncAmbientPlayback();
       if (this.handlers.onPlay) this.handlers.onPlay();
     });
     this.audio.addEventListener('pause', () => {
+      this.ambientAudio.pause();
       if (this.handlers.onPause) this.handlers.onPause();
     });
     this.audio.addEventListener('ended', () => {
+      this.ambientAudio.pause();
+      this.ambientAudio.currentTime = 0;
       if (this.handlers.onEnded) this.handlers.onEnded();
     });
     this.audio.addEventListener('error', (event) => {
@@ -32,10 +40,22 @@ export class CaptchaAudio {
     this.handlers = { ...this.handlers, ...handlers };
   }
 
-  async load(url) {
+  async load(url, options = {}) {
     // Cancel any ongoing speech synthesis when loading audio
     if (window.speechSynthesis && window.speechSynthesis.speaking) {
       window.speechSynthesis.cancel();
+    }
+
+    const ambientUrl = typeof options.ambientUrl === 'string' ? options.ambientUrl : '';
+    const ambientVolumeRatio = Number(options.ambientVolumeRatio);
+    if (!Number.isNaN(ambientVolumeRatio) && ambientVolumeRatio >= 0 && ambientVolumeRatio <= 1) {
+      this.ambientVolumeRatio = ambientVolumeRatio;
+    }
+
+    if (ambientUrl) {
+      this.setAmbientTrack(ambientUrl);
+    } else {
+      this.clearAmbientTrack();
     }
 
     return new Promise((resolve, reject) => {
@@ -81,14 +101,47 @@ export class CaptchaAudio {
   stop() {
     this.audio.pause();
     this.audio.currentTime = 0;
+    this.ambientAudio.pause();
+    this.ambientAudio.currentTime = 0;
   }
 
   setVolume(value) {
-    this.audio.volume = Math.max(0, Math.min(1, value));
+    const clamped = Math.max(0, Math.min(1, value));
+    this.audio.volume = clamped;
+    this.ambientAudio.volume = clamped * this.ambientVolumeRatio;
   }
 
   setPlaybackRate(value) {
     this.audio.playbackRate = Math.max(0.5, Math.min(2, value));
+  }
+
+  setAmbientTrack(url) {
+    this.ambientAudio.src = url;
+    this.ambientAudio.load();
+    this.ambientAudio.volume = this.audio.volume * this.ambientVolumeRatio;
+
+    // Background ambiance is optional; if missing, keep voice-only playback.
+    this.ambientAudio.onerror = () => {
+      this.clearAmbientTrack();
+    };
+  }
+
+  clearAmbientTrack() {
+    this.ambientAudio.pause();
+    this.ambientAudio.currentTime = 0;
+    this.ambientAudio.removeAttribute('src');
+    this.ambientAudio.load();
+  }
+
+  syncAmbientPlayback() {
+    if (!this.ambientAudio.src) return;
+    this.ambientAudio.currentTime = this.audio.currentTime;
+    const playPromise = this.ambientAudio.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => {
+        // Ignore autoplay/device restrictions for optional background track.
+      });
+    }
   }
 
   get isPlaying() {

@@ -243,6 +243,8 @@ export class CaptchaGenerator {
       throw new Error(`GenerateAudio error: ${data.error}`);
     }
 
+    const ambientUrl = data.ambientUrl || `/audio/ambience/${this.scenario.id}.mp3`;
+
     // Update CSRF token for next request
     if (data.csrf_token) {
       this.csrfToken = data.csrf_token;
@@ -301,7 +303,10 @@ export class CaptchaGenerator {
       },
     });
 
-    await this.audio.load(data.audioUrl);
+    await this.audio.load(data.audioUrl, {
+      ambientUrl,
+      ambientVolumeRatio: 0.2,
+    });
 
     this.ui.setWordBoxToggleHandler(() => this.toggleAudio());
     this.ui.setAudioStatus('Ready - Click Play to start');

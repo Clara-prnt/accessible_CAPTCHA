@@ -144,9 +144,12 @@ try {
     // Generate new CSRF token for next request
     $newCSRFToken = SessionManager::generateCSRFToken();
 
+    $ambientUrl = '/audio/ambience/' . $scenarioId . '.mp3';
+
     // Return the audio response with security tokens
     SecurityConfig::sendResponse(array_merge($result, [
         'words' => $displayWords,
+        'ambientUrl' => $ambientUrl,
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId,
         'success' => true

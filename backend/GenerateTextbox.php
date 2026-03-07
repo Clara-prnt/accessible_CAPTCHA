@@ -118,7 +118,7 @@ try {
         'displayWords' => $displayWords,
         'words' => $displayWords,
         'wordDisplayDuration' => 1000,
-        'wordInterval' => 1000,
+        'wordInterval' => 1300,
         'clicksRequired' => $clicksRequired
     ];
     SessionManager::setCaptchaData($captchaSessionId, array_merge($captchaData, $textboxData));
@@ -130,7 +130,7 @@ try {
         'clicksRequired' => $clicksRequired,
         'scenarioId' => $scenarioId,
         'wordDisplayDuration' => 1000,
-        'wordInterval' => 1000,
+        'wordInterval' => 1300,
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId
     ], 200);
