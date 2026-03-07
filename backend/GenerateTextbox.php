@@ -91,40 +91,31 @@ try {
     // Load scenario and validate it exists
     $scenario = loadScenariosFromJSONFile($scenarioId);
 
-    // Get all words from the scenario
-    $scenarioWords = $scenario['words'];
+    // Reuse shared shuffled order from audio generation when available.
+    $displayWords = null;
+    if (isset($captchaData['displayWords']) && is_array($captchaData['displayWords']) && count($captchaData['displayWords']) > 0) {
+        $displayWords = array_values($captchaData['displayWords']);
+    } else {
+        $scenarioWords = isset($scenario['words']) ? $scenario['words'] : [];
+        if (!is_array($scenarioWords) || count($scenarioWords) === 0) {
+            SecurityConfig::sendResponse(['error' => 'Scenario words are missing'], 500);
+        }
 
-    // Generate a list of random words to display
-    $displayWords = [];
-
-    // Add the target word
-    $displayWords[] = $targetWord;
-
-    // Get additional words from the scenario (excluding the target word)
-    $distractorWords = array_filter($scenarioWords, function($word) use ($targetWord) {
-        return $word !== $targetWord;
-    });
-    $distractorWords = array_values($distractorWords);
-
-    // Add 4-6 random distractors
-    $numDistracters = rand(4, 6);
-    $numDistracters = min($numDistracters, count($distractorWords));
-
-    for ($i = 0; $i < $numDistracters; $i++) {
-        $randomIndex = rand(0, count($distractorWords) - 1);
-        $displayWords[] = $distractorWords[$randomIndex];
-        // Remove the used word to avoid duplicates
-        array_splice($distractorWords, $randomIndex, 1);
+        $displayWords = array_values($scenarioWords);
+        shuffle($displayWords);
     }
 
-    // Shuffle the display words
-    shuffle($displayWords);
+    // Ensure the declared target is part of the selected ordered list.
+    if (!in_array($targetWord, $displayWords, true)) {
+        SecurityConfig::sendResponse(['error' => 'Target word not found in display words'], 400);
+    }
 
     // Generate new CSRF token for next request
     $newCSRFToken = SessionManager::generateCSRFToken();
 
     // Update CAPTCHA session data
     $textboxData = [
+        'displayWords' => $displayWords,
         'words' => $displayWords,
         'wordDisplayDuration' => 1000,
         'wordInterval' => 1000,

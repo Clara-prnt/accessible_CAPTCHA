@@ -3,6 +3,7 @@ import sys
 import pyttsx3
 from datetime import datetime
 import os
+import base64
 
 # Initialize TTS engine
 engine = pyttsx3.init()
@@ -11,6 +12,7 @@ engine.setProperty('rate', 150)  # Speed
 # Load scenario
 scenario_id = sys.argv[1]
 target_word = sys.argv[2]
+custom_words_arg = sys.argv[3] if len(sys.argv) > 3 else None
 
 base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 scenarios_path = os.path.join(base_dir, 'src', 'data', 'scenarios.json')
@@ -35,6 +37,18 @@ try:
     # Create audio with explicit pauses between words for clarity
     # Format: "word <pause> word <pause> word"
     words = scenario['words']
+
+    # If provided by PHP, use the exact shuffled order shared with textbox.
+    if custom_words_arg:
+        try:
+            decoded_words = base64.b64decode(custom_words_arg).decode('utf-8')
+            parsed_words = json.loads(decoded_words)
+            if isinstance(parsed_words, list) and all(isinstance(w, str) for w in parsed_words) and len(parsed_words) > 0:
+                words = parsed_words
+        except Exception:
+            # Fallback to scenario words if parsing fails.
+            words = scenario['words']
+
     audio_text = scenario['text'] + '. '
 
     # Add words with pauses between them (using ellipsis to create natural pauses)
@@ -60,6 +74,7 @@ try:
         'success': True,
         'audioUrl': f'/audio/{filename}',
         'targetWord': target_word,
+        'words': words,
         'duration': len(audio_text) / 15,
         'leadInSeconds': lead_in_seconds
     }

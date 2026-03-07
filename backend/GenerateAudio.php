@@ -82,12 +82,32 @@ try {
         SecurityConfig::sendResponse(['error' => 'Invalid or expired CAPTCHA session'], 403);
     }
 
-    // Load scenarios from JSON file
-    loadScenariosFromJSONFile($scenarioId);
+    // Load scenario and build a shared shuffled word order for audio + textbox.
+    $scenario = loadScenariosFromJSONFile($scenarioId);
+    $scenarioWords = isset($scenario['words']) ? $scenario['words'] : [];
+
+    if (!is_array($scenarioWords) || count($scenarioWords) === 0) {
+        SecurityConfig::sendResponse(['error' => 'Scenario words are missing'], 500);
+    }
+
+    if (!in_array($targetWord, $scenarioWords, true)) {
+        SecurityConfig::sendResponse(['error' => 'Target word not found in scenario words'], 400);
+    }
+
+    $displayWords = array_values($scenarioWords);
+    shuffle($displayWords);
+
+    $displayWordsJson = json_encode($displayWords);
+    if ($displayWordsJson === false) {
+        throw new Exception('Unable to encode shuffled words');
+    }
+
+    // Pass shuffled words as a safe CLI arg (base64 JSON).
+    $displayWordsArg = base64_encode($displayWordsJson);
 
     // Prepare the Python command
     $pythonScript = __DIR__ . '/generate_audio.py';
-    $command = "python \"$pythonScript\" \"$scenarioId\" \"$targetWord\" 2>&1";
+    $command = "python \"$pythonScript\" \"$scenarioId\" \"$targetWord\" \"$displayWordsArg\" 2>&1";
 
     // Execute the Python script
     $output = shell_exec($command);
@@ -113,6 +133,7 @@ try {
     $audioData = [
         'targetWord' => $targetWord,
         'scenarioId' => $scenarioId,
+        'displayWords' => $displayWords,
         'leadInSeconds' => $result['leadInSeconds'] ?? 0,
         'duration' => $result['duration'] ?? 0,
         'audioPath' => $result['audioPath'] ?? '',
@@ -125,6 +146,7 @@ try {
 
     // Return the audio response with security tokens
     SecurityConfig::sendResponse(array_merge($result, [
+        'words' => $displayWords,
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId,
         'success' => true

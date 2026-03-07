@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('CAPTCHA End-to-End Flow', () => {
-  test('User can solve the CAPTCHA without clicks', async ({ page }) => {
+  test('User can solve the CAPTCHA', async ({ page }) => {
     // Mock backend endpoints to avoid infra dependency in UI E2E.
     await page.route('**/backend/InitCaptcha.php', async (route) => {
       await route.fulfill({
@@ -56,42 +56,47 @@ test.describe('CAPTCHA End-to-End Flow', () => {
     await page.click('button[type="submit"]');
 
     await expect(page.locator('#captcha_card')).toBeVisible();
-
-    // Wait for audio controls to be available
     await expect(page.locator('#audio-toggle')).toBeVisible({ timeout: 15000 });
 
-    // Simulate validation by directly calling the validator's registerClick method
-    // This bypasses the need for actual UI clicks
-    const validationResult = await page.evaluate(() => {
-      // Access the global validator instance
-      if (!window.captchaValidator) {
-        return { error: 'Validator not found', available: false };
+    // Wait until validator is ready, then validate without relying on displayed word timing.
+    await page.waitForFunction(() => Boolean(window.captchaValidator), { timeout: 10000 });
+
+    const validationResult = await page.evaluate(async () => {
+      const validator = window.captchaValidator;
+      if (!validator) {
+        return { available: false, eventReceived: false, isValidated: false };
       }
 
-      console.log('Validator state:', {
-        targetWord: window.captchaValidator.targetWord,
-        clicksRequired: window.captchaValidator.clicksRequired,
-        isValidated: window.captchaValidator.isValidated
+      const eventPromise = new Promise((resolve) => {
+        window.addEventListener('captcha-validated', () => resolve(true), { once: true });
       });
 
-      // Simulate 2 rapid clicks on the target word
-      const result1 = window.captchaValidator.registerClick('apple');
-      console.log('First click result:', result1);
+      const clicksRequired = validator.clicksRequired;
+      let lastFeedback = null;
 
-      const result2 = window.captchaValidator.registerClick('apple');
-      console.log('Second click result:', result2);
+      for (let i = 0; i < clicksRequired; i += 1) {
+        // Passing null bypasses word-match timing and only tests validation mechanics.
+        lastFeedback = validator.registerClick(null);
+      }
+
+      const eventReceived = await Promise.race([
+        eventPromise,
+        new Promise((resolve) => setTimeout(() => resolve(false), 2000)),
+      ]);
 
       return {
-        success: true,
-        isValidated: window.captchaValidator.isValidated,
-        message: result2.message,
-        clickCount: window.captchaValidator.clickSequence.length
+        available: true,
+        clicksRequired,
+        eventReceived,
+        isValidated: validator.isValidated,
+        message: lastFeedback?.message,
       };
     });
 
-    console.log('Validation result:', validationResult);
+    expect(validationResult.available).toBe(true);
+    expect(validationResult.isValidated).toBe(true);
+    expect(validationResult.eventReceived).toBe(true);
 
-    // Wait for success card to appear
     await expect(page.locator('#success_card')).toBeVisible({ timeout: 10000 });
     await expect(page.locator('#success-message')).toContainText('CAPTCHA Validated!');
   });
