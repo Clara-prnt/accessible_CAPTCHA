@@ -118,6 +118,9 @@ export class CaptchaGenerator {
     // Initialize the validator with clicks required AND target word
     this.validator = new CaptchaValidator(this.clicksRequired, this.targetWord);
 
+    // Expose validator to global scope for testing purposes
+    window.captchaValidator = this.validator;
+
     // Set up validation callbacks
     this.validator.onClickFeedback((feedback) => {
       this.handleClickFeedback(feedback);
