@@ -10,7 +10,7 @@ export class CaptchaValidator {
     this.targetWord = targetWord; // The word user should click on
     this.clickSequence = []; // Array of click timestamps
     this.clickTimeout = null; // Timeout to reset the sequence if too slow
-    this.clickTimeWindow = 800; // 800ms between clicks to count as a sequence
+    this.clickTimeWindow = 1200; // 1200ms between clicks to count as a sequence
     this.validationCallback = null;
     this.clickFeedbackCallback = null;
     this.failureCallback = null; // Callback for failed attempts
@@ -22,7 +22,7 @@ export class CaptchaValidator {
 
   /**
    * Register a click with the currently displayed word
-   * @param {string} currentWord - The word currently displayed to the user
+   * @param {null} currentWord - The word currently displayed to the user
    * @returns {Object} Feedback object with click information
    */
   registerClick(currentWord = null) {
@@ -185,14 +185,6 @@ export class CaptchaValidator {
       clickSequence: this.clickSequence,
       targetWord: this.targetWord
     };
-  }
-
-  /**
-   * Check if CAPTCHA is validated
-   * @returns {boolean} True if validated
-   */
-  isComplete() {
-    return this.isValidated;
   }
 
   /**

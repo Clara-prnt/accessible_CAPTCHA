@@ -143,8 +143,4 @@ export class CaptchaAudio {
       });
     }
   }
-
-  get isPlaying() {
-    return !this.audio.paused;
-  }
 }

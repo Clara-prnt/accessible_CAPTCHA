@@ -15,7 +15,7 @@ require_once __DIR__ . '/RateLimiter.php';
 SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
@@ -60,7 +60,7 @@ try {
         'csrf_token' => $csrfToken,
         'captcha_session_id' => $captchaSessionId,
         'session_id' => $sessionId,
-    ], 200);
+    ]);
 
 } catch (Exception $e) {
     error_log('InitCaptcha failure: ' . $e->getMessage());

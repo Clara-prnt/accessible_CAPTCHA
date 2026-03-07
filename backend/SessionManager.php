@@ -11,7 +11,8 @@ class SessionManager {
     /**
      * Initialize secure session
      */
-    public static function initializeSession() {
+    public static function initializeSession(): void
+    {
         if (session_status() === PHP_SESSION_NONE) {
             // Session configuration
             ini_set('session.use_strict_mode', 1);
@@ -40,7 +41,8 @@ class SessionManager {
      * Generate and store CSRF token
      * @return string The CSRF token
      */
-    public static function generateCSRFToken() {
+    public static function generateCSRFToken(): string
+    {
         self::initializeSession();
 
         $token = SecurityConfig::generateToken();
@@ -62,7 +64,8 @@ class SessionManager {
      * @param string $token The token to validate
      * @return bool True if valid, false otherwise
      */
-    public static function validateCSRFToken($token) {
+    public static function validateCSRFToken(string $token): bool
+    {
         self::initializeSession();
 
         if (!isset($_SESSION['CSRF_TOKENS']) || !is_array($_SESSION['CSRF_TOKENS'])) {
@@ -76,13 +79,12 @@ class SessionManager {
         $tokenTime = $_SESSION['CSRF_TOKENS'][$token];
 
         // Check if token is expired
+        unset($_SESSION['CSRF_TOKENS'][$token]);
         if (time() - $tokenTime > SecurityConfig::CSRF_TOKEN_LIFETIME) {
-            unset($_SESSION['CSRF_TOKENS'][$token]);
             return false;
         }
 
         // Token is valid, remove it (one-time use with rotation)
-        unset($_SESSION['CSRF_TOKENS'][$token]);
 
         return true;
     }
@@ -90,7 +92,8 @@ class SessionManager {
     /**
      * Clean expired CSRF tokens
      */
-    private static function cleanOldCSRFTokens() {
+    private static function cleanOldCSRFTokens(): void
+    {
         if (!isset($_SESSION['CSRF_TOKENS'])) {
             return;
         }
@@ -107,7 +110,8 @@ class SessionManager {
      * Get or create session ID
      * @return string Session ID
      */
-    public static function getSessionId() {
+    public static function getSessionId(): string
+    {
         self::initializeSession();
         return session_id();
     }
@@ -117,7 +121,8 @@ class SessionManager {
      * @param string $captchaSessionId Unique ID for this CAPTCHA instance
      * @param array $data Data to store
      */
-    public static function setCaptchaData($captchaSessionId, $data) {
+    public static function setCaptchaData(string $captchaSessionId, array $data): void
+    {
         self::initializeSession();
 
         if (!isset($_SESSION['CAPTCHA_SESSIONS'])) {
@@ -136,7 +141,8 @@ class SessionManager {
      * @param string $captchaSessionId Unique ID for this CAPTCHA instance
      * @return array|null The stored data or null if not found/expired
      */
-    public static function getCaptchaData($captchaSessionId) {
+    public static function getCaptchaData(string $captchaSessionId): ?array
+    {
         self::initializeSession();
 
         if (!isset($_SESSION['CAPTCHA_SESSIONS'][$captchaSessionId])) {
@@ -164,7 +170,8 @@ class SessionManager {
      * Destroy a CAPTCHA session
      * @param string $captchaSessionId Unique ID for this CAPTCHA instance
      */
-    public static function destroyCaptchaSession($captchaSessionId) {
+    public static function destroyCaptchaSession(string $captchaSessionId): void
+    {
         self::initializeSession();
 
         if (isset($_SESSION['CAPTCHA_SESSIONS'][$captchaSessionId])) {
@@ -176,7 +183,8 @@ class SessionManager {
      * Check if connection is secure (HTTPS)
      * @return bool
      */
-    private static function isSecureConnection() {
+    private static function isSecureConnection(): bool
+    {
         return !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
     }
 }

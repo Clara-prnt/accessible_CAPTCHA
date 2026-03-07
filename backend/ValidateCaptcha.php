@@ -18,7 +18,7 @@ require_once __DIR__ . '/InputValidator.php';
 SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
@@ -115,7 +115,7 @@ try {
     SessionManager::destroyCaptchaSession($captchaSessionId);
 
     // Record success to reduce rate limit pressure
-    RateLimiter::recordSuccess('validation_requests');
+    RateLimiter::recordSuccess();
 
     // Generate new CSRF token for next request
     $newCSRFToken = SessionManager::generateCSRFToken();
@@ -128,7 +128,7 @@ try {
         'target_word' => $targetWord,
         'clicks_required' => $clicksRequired,
         'clicks_received' => $clickCount
-    ], 200);
+    ]);
 
 } catch (Exception $e) {
     error_log('ValidateCaptcha failure: ' . $e->getMessage());

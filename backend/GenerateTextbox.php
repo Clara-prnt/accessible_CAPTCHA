@@ -13,7 +13,7 @@ require_once __DIR__ . '/ScenarioLoader.php';
 SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
@@ -53,7 +53,7 @@ try {
     $targetWord = $input['targetWord'];
     $csrfToken = $input['csrf_token'];
     $captchaSessionId = $input['captcha_session_id'];
-    $clicksRequired = isset($input['clicksRequired']) ? $input['clicksRequired'] : 3;
+    $clicksRequired = $input['clicksRequired'] ?? 3;
 
     // Validate parameter formats
     if (!InputValidator::validateScenarioId($scenarioId)) {
@@ -96,7 +96,7 @@ try {
     if (isset($captchaData['displayWords']) && is_array($captchaData['displayWords']) && count($captchaData['displayWords']) > 0) {
         $displayWords = array_values($captchaData['displayWords']);
     } else {
-        $scenarioWords = isset($scenario['words']) ? $scenario['words'] : [];
+        $scenarioWords = $scenario['words'] ?? [];
         if (!is_array($scenarioWords) || count($scenarioWords) === 0) {
             SecurityConfig::sendResponse(['error' => 'Scenario words are missing'], 500);
         }
@@ -133,7 +133,7 @@ try {
         'wordInterval' => 1300,
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId
-    ], 200);
+    ]);
 
 } catch (Exception $e) {
     error_log('GenerateTextbox failure: ' . $e->getMessage());

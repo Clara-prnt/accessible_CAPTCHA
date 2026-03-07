@@ -4,6 +4,8 @@
  * Rate limiting partage entre toutes les sessions pour eviter le bypass via rotation de cookies.
  */
 
+use Random\RandomException;
+
 require_once __DIR__ . '/SecurityConfig.php';
 
 class RateLimiter {
@@ -11,8 +13,10 @@ class RateLimiter {
     /**
      * Check if a request should be rate limited (init request)
      * @return array ['allowed' => bool, 'message' => string, 'retry_after' => int]
+     * @throws RandomException
      */
-    public static function checkInitLimit() {
+    public static function checkInitLimit(): array
+    {
         return self::checkLimit(
             'init_requests',
             SecurityConfig::RATE_LIMIT_INIT_REQUESTS,
@@ -23,8 +27,10 @@ class RateLimiter {
     /**
      * Check if a request should be rate limited (validation request)
      * @return array ['allowed' => bool, 'message' => string, 'retry_after' => int]
+     * @throws RandomException
      */
-    public static function checkValidationLimit() {
+    public static function checkValidationLimit(): array
+    {
         return self::checkLimit(
             'validation_requests',
             SecurityConfig::RATE_LIMIT_VALIDATION_REQUESTS,
@@ -38,8 +44,10 @@ class RateLimiter {
      * @param int $maxRequests
      * @param int $timeWindow
      * @return array ['allowed' => bool, 'message' => string, 'retry_after' => int]
+     * @throws RandomException
      */
-    private static function checkLimit($type, $maxRequests, $timeWindow) {
+    private static function checkLimit(string $type, int $maxRequests, int $timeWindow): array
+    {
         $clientKey = self::buildClientKey($type);
         $path = self::getStoragePath($clientKey);
         $now = time();
@@ -123,7 +131,8 @@ class RateLimiter {
      * Record a successful CAPTCHA completion (slight penalty reduction)
      * @param string $type
      */
-    public static function recordSuccess($type = 'validation_requests') {
+    public static function recordSuccess(string $type = 'validation_requests'): void
+    {
         $clientKey = self::buildClientKey($type);
         $path = self::getStoragePath($clientKey);
 
@@ -157,7 +166,8 @@ class RateLimiter {
      * @param string $type
      * @return string
      */
-    private static function buildClientKey($type) {
+    private static function buildClientKey(string $type): string
+    {
         $ip = SecurityConfig::getClientIP();
         $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
         $uaHash = substr(hash('sha256', $ua), 0, 16);
@@ -168,7 +178,8 @@ class RateLimiter {
      * @param string $clientKey
      * @return string
      */
-    private static function getStoragePath($clientKey) {
+    private static function getStoragePath(string $clientKey): string
+    {
         $dir = __DIR__ . '/../tmp/rate_limit';
         if (!is_dir($dir)) {
             @mkdir($dir, 0700, true);
@@ -183,7 +194,8 @@ class RateLimiter {
      * @param array $limitData
      * @return void
      */
-    private static function persist($handle, $limitData) {
+    private static function persist($handle, array $limitData): void
+    {
         rewind($handle);
         ftruncate($handle, 0);
         fwrite($handle, json_encode($limitData));
@@ -193,8 +205,10 @@ class RateLimiter {
     /**
      * Cleanup stale limiter files opportunistically.
      * @return void
+     * @throws RandomException
      */
-    private static function cleanupStorageIfNeeded() {
+    private static function cleanupStorageIfNeeded(): void
+    {
         // Run cleanup rarely to avoid overhead on every request.
         if (random_int(1, 100) !== 1) {
             return;

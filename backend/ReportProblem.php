@@ -83,7 +83,7 @@ file_put_contents($textLogFile, $logEntry, FILE_APPEND);
 if (defined('ADMIN_EMAIL') && ADMIN_EMAIL) {
     $subject = "CAPTCHA Problem Report: {$report['type']}";
     $message = "A new problem report has been submitted:\n\n";
-    $message .= "Report ID: {$reportId}\n";
+    $message .= "Report ID: $reportId\n";
     $message .= "Type: {$report['type']}\n";
     $message .= "Description: {$report['description']}\n";
     $message .= "Email: " . ($report['email'] ?? 'Not provided') . "\n";

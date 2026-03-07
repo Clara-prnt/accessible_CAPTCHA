@@ -13,7 +13,7 @@ require_once __DIR__ . '/ScenarioLoader.php';
 SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
@@ -84,7 +84,7 @@ try {
 
     // Load scenario and build a shared shuffled word order for audio + textbox.
     $scenario = loadScenariosFromJSONFile($scenarioId);
-    $scenarioWords = isset($scenario['words']) ? $scenario['words'] : [];
+    $scenarioWords = $scenario['words'] ?? [];
 
     if (!is_array($scenarioWords) || count($scenarioWords) === 0) {
         SecurityConfig::sendResponse(['error' => 'Scenario words are missing'], 500);
@@ -112,8 +112,8 @@ try {
     // Execute the Python script
     $output = shell_exec($command);
 
-    $output = isset($output) ? $output : '';
-    if (strpos($output, "\x00") !== false && function_exists('iconv')) {
+    $output = $output ?? '';
+    if (str_contains($output, "\x00") && function_exists('iconv')) {
         $output = iconv('UTF-16LE', 'UTF-8', $output);
     }
     $output = trim($output);
@@ -153,7 +153,7 @@ try {
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId,
         'success' => true
-    ]), 200);
+    ]));
 
 } catch (Exception $e) {
     error_log('GenerateAudio failure: ' . $e->getMessage());

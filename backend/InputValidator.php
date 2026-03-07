@@ -11,7 +11,8 @@ class InputValidator {
      * @param mixed $scenarioId The scenario ID to validate
      * @return bool True if valid
      */
-    public static function validateScenarioId($scenarioId) {
+    public static function validateScenarioId(mixed $scenarioId): bool
+    {
         // Scenario ID should be a string (UUID or similar)
         if (!is_string($scenarioId)) {
             return false;
@@ -40,7 +41,8 @@ class InputValidator {
      * @param mixed $targetWord The word to validate
      * @return bool True if valid
      */
-    public static function validateTargetWord($targetWord) {
+    public static function validateTargetWord(mixed $targetWord): bool
+    {
         // Should be a string
         if (!is_string($targetWord)) {
             return false;
@@ -69,7 +71,8 @@ class InputValidator {
      * @param mixed $token The token to validate
      * @return bool True if valid format
      */
-    public static function validateCSRFTokenFormat($token) {
+    public static function validateCSRFTokenFormat(mixed $token): bool
+    {
         // Should be a string
         if (!is_string($token)) {
             return false;
@@ -93,7 +96,8 @@ class InputValidator {
      * @param mixed $sessionId The session ID to validate
      * @return bool True if valid
      */
-    public static function validateCaptchaSessionId($sessionId) {
+    public static function validateCaptchaSessionId(mixed $sessionId): bool
+    {
         // Should be a string
         if (!is_string($sessionId)) {
             return false;
@@ -104,7 +108,7 @@ class InputValidator {
             return false;
         }
 
-        // Should be hex string (from uniqid or similar)
+        // Should be hex string (from unique id or similar)
         if (!preg_match('/^[a-f0-9]+$/', $sessionId)) {
             return false;
         }
@@ -123,11 +127,8 @@ class InputValidator {
      * @param array $required Required keys in the input
      * @return bool True if input has all required keys
      */
-    public static function validateJSONInput($input, $required = []) {
-        if (!is_array($input)) {
-            return false;
-        }
-
+    public static function validateJSONInput(array $input, array $required = []): bool
+    {
         foreach ($required as $key) {
             if (!isset($input[$key])) {
                 return false;
@@ -142,7 +143,8 @@ class InputValidator {
      * @param mixed $clicks The click data to validate
      * @return bool True if valid
      */
-    public static function validateClickData($clicks) {
+    public static function validateClickData(mixed $clicks): bool
+    {
         // Should be an array or integer
         if (is_integer($clicks)) {
             return $clicks >= 0 && $clicks <= 100;

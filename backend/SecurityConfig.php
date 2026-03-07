@@ -1,29 +1,22 @@
 <?php
 
+use JetBrains\PhpStorm\NoReturn;
+
 class SecurityConfig {
     // CSRF Token Configuration
-    const CSRF_TOKEN_LENGTH = 64;  // 32 bytes = 64 hex characters
-    const CSRF_TOKEN_LIFETIME = 3600; // 1 hour
+    const CSRF_TOKEN_LIFETIME = 120; // 1 hour | for testing, 2 minutes (120)
 
     // Session Configuration
-    const SESSION_LIFETIME = 1800; // 30 minutes
-    const SESSION_TIMEOUT_WARNING = 300; // 5 minutes before timeout
+    const SESSION_LIFETIME = 120; // 30 minutes | for testing, 2 minutes (120)
 
     // Rate Limiting Configuration
-    const RATE_LIMIT_INIT_REQUESTS = 5; // Max init requests (5) | for testing, x10
-    const RATE_LIMIT_INIT_WINDOW = 900; // 15 minutes (900) | for testing, 1 minute
-    const RATE_LIMIT_VALIDATION_REQUESTS = 10; // Max validation attempts (10) | for testing, x10
-    const RATE_LIMIT_VALIDATION_WINDOW = 3600; // 1 hour (3600) | for testing, 5 minutes (300)
+    const RATE_LIMIT_INIT_REQUESTS = 50; // Max init requests (5) | for testing, x10
+    const RATE_LIMIT_INIT_WINDOW = 60; // 15 minutes (900) | for testing, 1 minute
+    const RATE_LIMIT_VALIDATION_REQUESTS = 100; // Max validation attempts (10) | for testing, x10
+    const RATE_LIMIT_VALIDATION_WINDOW = 120; // 1 hour (3600) | for testing, 2 minutes (120)
 
     // Captcha Configuration
     const CAPTCHA_SESSION_LIFETIME = 600; // 10 minutes
-    const MAX_CAPTCHA_ATTEMPTS = 5; // Max attempts per CAPTCHA instance
-    const CAPTCHA_TIMEOUT = 600; // 10 minutes to complete
-
-    // File Storage
-    const TEMP_SESSION_DIR = '/tmp/captcha_sessions';
-    const SESSION_FILE_PERMISSIONS = 0600;
-    const CLEANUP_INTERVAL = 3600; // Clean old files every hour
 
     // Security Headers
     const SECURITY_HEADERS = [
@@ -41,9 +34,6 @@ class SecurityConfig {
         'http://localhost:3000',
     ];
 
-    // Captcha validation token lifetime
-    const VALIDATION_TOKEN_LIFETIME = 3600; // 1 hour
-
     // Proxy trust configuration
     const TRUST_PROXY_HEADERS = false;
     const TRUSTED_PROXIES = [
@@ -55,7 +45,8 @@ class SecurityConfig {
      * Get client IP address safely
      * @return string
      */
-    public static function getClientIP() {
+    public static function getClientIP(): string
+    {
         $remoteAddr = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $isTrustedProxy = self::TRUST_PROXY_HEADERS && in_array($remoteAddr, self::TRUSTED_PROXIES, true);
 
@@ -87,12 +78,13 @@ class SecurityConfig {
      * @param int $length Length of token to generate in BYTES (will be doubled as hex characters)
      * @return string
      */
-    public static function generateToken($length = 32) {
+    public static function generateToken(int $length = 32): string
+    {
         try {
             // Generate random bytes and convert to hex (each byte = 2 hex chars)
             $bytes = random_bytes($length);
             return bin2hex($bytes);
-        } catch (Exception $e) {
+        } catch (Exception) {
             // Fallback for older PHP versions
             return bin2hex(openssl_random_pseudo_bytes($length));
         }
@@ -103,7 +95,8 @@ class SecurityConfig {
      * @param mixed $value
      * @return string
      */
-    public static function sanitize($value) {
+    public static function sanitize(mixed $value): string
+    {
         $stringValue = is_string($value) ? $value : (string)$value;
         return trim(strip_tags($stringValue));
     }
@@ -114,7 +107,8 @@ class SecurityConfig {
      * @param array $validationData
      * @return void
      */
-    public static function storeCaptchaValidation($captchaSessionId, $validationData) {
+    public static function storeCaptchaValidation(string $captchaSessionId, array $validationData): void
+    {
         if (!class_exists('SessionManager')) {
             require_once __DIR__ . '/SessionManager.php';
         }
@@ -129,66 +123,11 @@ class SecurityConfig {
     }
 
     /**
-     * Verify if a CAPTCHA validation token is valid and not expired.
-     * @param string $validationToken
-     * @return array ['valid' => bool, 'data' => array|null]
-     */
-    public static function verifyCaptchaValidation($validationToken) {
-        if (!class_exists('SessionManager')) {
-            require_once __DIR__ . '/SessionManager.php';
-        }
-
-        SessionManager::initializeSession();
-
-        if (!isset($_SESSION['CAPTCHA_VALIDATIONS']) || !is_array($_SESSION['CAPTCHA_VALIDATIONS'])) {
-            return ['valid' => false, 'data' => null];
-        }
-
-        foreach ($_SESSION['CAPTCHA_VALIDATIONS'] as $sessionId => $validationData) {
-            if (($validationData['validation_token'] ?? null) === $validationToken) {
-                if (time() - ($validationData['validated_at'] ?? 0) > self::VALIDATION_TOKEN_LIFETIME) {
-                    unset($_SESSION['CAPTCHA_VALIDATIONS'][$sessionId]);
-                    return ['valid' => false, 'data' => null];
-                }
-
-                return ['valid' => true, 'data' => $validationData];
-            }
-        }
-
-        return ['valid' => false, 'data' => null];
-    }
-
-    /**
-     * Consume a CAPTCHA validation token (single-use behavior).
-     * @param string $validationToken
-     * @return bool
-     */
-    public static function consumeValidationToken($validationToken) {
-        if (!class_exists('SessionManager')) {
-            require_once __DIR__ . '/SessionManager.php';
-        }
-
-        SessionManager::initializeSession();
-
-        if (!isset($_SESSION['CAPTCHA_VALIDATIONS']) || !is_array($_SESSION['CAPTCHA_VALIDATIONS'])) {
-            return false;
-        }
-
-        foreach ($_SESSION['CAPTCHA_VALIDATIONS'] as $sessionId => $validationData) {
-            if (($validationData['validation_token'] ?? null) === $validationToken) {
-                unset($_SESSION['CAPTCHA_VALIDATIONS'][$sessionId]);
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Apply common API hardening headers.
      * @return void
      */
-    public static function applyApiSecurityHeaders() {
+    public static function applyApiSecurityHeaders(): void
+    {
         foreach (self::SECURITY_HEADERS as $header => $value) {
             header("$header: $value");
         }
@@ -205,7 +144,9 @@ class SecurityConfig {
      * @param array $rateLimit
      * @return void
      */
-    public static function sendRateLimitExceeded($rateLimit) {
+    #[NoReturn]
+    public static function sendRateLimitExceeded(array $rateLimit): void
+    {
         $retryAfter = max(1, (int)($rateLimit['retry_after'] ?? 1));
         header('Retry-After: ' . $retryAfter);
         self::sendResponse([
@@ -221,7 +162,9 @@ class SecurityConfig {
      * @param int $httpCode
      * @return void
      */
-    public static function sendResponse($data, $httpCode = 200) {
+    #[NoReturn]
+    public static function sendResponse(array $data, int $httpCode = 200): void
+    {
         http_response_code($httpCode);
         echo json_encode($data);
         exit;

@@ -30,7 +30,7 @@ export class CaptchaActions {
     if (this.reloadButton) {
       this.reloadButton.addEventListener('click', (e) => {
         e.preventDefault();
-        this.reloadCaptcha();
+        this.reloadCaptcha().then(() => {});
       });
       this.reloadButton.setAttribute('aria-label', 'Reload CAPTCHA with new challenge');
     }
@@ -226,7 +226,7 @@ export class CaptchaActions {
           
           <p><strong>Validation not working:</strong></p>
           <ul>
-            <li>Ensure you're clicking/pressing Shift quickly (within 800ms)</li>
+            <li>Ensure you're clicking/pressing Shift quickly (within 1200ms)</li>
             <li>Make sure audio is playing when you click</li>
             <li>Try clicking on the correct word only</li>
           </ul>
@@ -450,13 +450,21 @@ export class CaptchaActions {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        console.error('❌ Failed to submit report: HTTP error', response.status);
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        this.showError('Failed to submit report. Please try again.');
+        return;
       }
 
       const result = await response.json();
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to submit report');
+        console.error('❌ Failed to submit report:', result.error || 'Unknown error');
+        submitButton.textContent = originalText;
+        submitButton.disabled = false;
+        this.showError('Failed to submit report. Please try again.');
+        return;
       }
       //console.log('✅ Problem report submitted successfully:', result.report_id);
 
