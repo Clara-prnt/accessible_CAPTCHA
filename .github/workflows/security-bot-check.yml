@@ -21,21 +21,56 @@ jobs:
         with:
           php-version: "8.3"
 
-      - name: Start local PHP server
+      - name: Start PHP and run anti-bot tests
         shell: pwsh
         run: |
-          Start-Process php -ArgumentList '-S 127.0.0.1:8000 -t .' -NoNewWindow
-          Start-Sleep -Seconds 3
+          $ErrorActionPreference = 'Stop'
+          $phpOut = Join-Path $PWD 'php-server.out.log'
+          $phpErr = Join-Path $PWD 'php-server.err.log'
 
-      - name: Run anti-bot security tests
-        shell: pwsh
-        run: |
-          powershell -ExecutionPolicy Bypass -File .\security-bot-check.ps1 -BaseUrl "http://127.0.0.1:8000/backend" -ResetRateLimit -ReportPath ".\security-bot-check-report.txt"
+          # Start PHP server and keep process handle for cleanup.
+          $phpProcess = Start-Process php -ArgumentList '-S 127.0.0.1:8000 -t .' -PassThru -RedirectStandardOutput $phpOut -RedirectStandardError $phpErr
 
-      - name: Upload security test report
+          try {
+            $serverReady = $false
+            for ($i = 1; $i -le 20; $i++) {
+              Start-Sleep -Seconds 1
+              try {
+                $probe = Invoke-WebRequest -Uri 'http://127.0.0.1:8000/backend/InitCaptcha.php' -Method GET -TimeoutSec 3
+                # GET on InitCaptcha should return 405 when server is up.
+                if ($probe.StatusCode -ge 200) {
+                  $serverReady = $true
+                  break
+                }
+              } catch {
+                if ($_.Exception.Response -and [int]$_.Exception.Response.StatusCode.value__ -eq 405) {
+                  $serverReady = $true
+                  break
+                }
+              }
+            }
+
+            if (-not $serverReady) {
+              Write-Host 'PHP server did not become ready in time.'
+              if (Test-Path $phpOut) { Get-Content $phpOut -ErrorAction SilentlyContinue }
+              if (Test-Path $phpErr) { Get-Content $phpErr -ErrorAction SilentlyContinue }
+              exit 1
+            }
+
+            .\security-bot-check.ps1 -BaseUrl "http://127.0.0.1:8000/backend" -ResetRateLimit -ReportPath ".\security-bot-check-report.txt"
+          }
+          finally {
+            if ($phpProcess -and -not $phpProcess.HasExited) {
+              Stop-Process -Id $phpProcess.Id -Force
+            }
+          }
+
+      - name: Upload security test artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: security-bot-check-report
-          path: security-bot-check-report.txt
-
+          name: security-bot-check-artifacts
+          path: |
+            security-bot-check-report.txt
+            php-server.out.log
+            php-server.err.log
