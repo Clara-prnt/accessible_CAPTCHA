@@ -15,13 +15,11 @@ require_once __DIR__ . '/RateLimiter.php';
 require_once __DIR__ . '/InputValidator.php';
 
 // Set security headers
-foreach (SecurityConfig::SECURITY_HEADERS as $header => $value) {
-    header("$header: $value");
-}
+SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS)) {
+if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
 }
@@ -35,21 +33,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     // Only allow POST requests
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['error' => 'Method not allowed']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Method not allowed'], 405);
     }
 
     // Check rate limiting
     $rateLimit = RateLimiter::checkValidationLimit();
     if (!$rateLimit['allowed']) {
-        http_response_code(429);
-        echo json_encode([
-            'error' => 'Rate limit exceeded',
-            'message' => $rateLimit['message'],
-            'retry_after' => $rateLimit['retry_after']
-        ]);
-        exit;
+        SecurityConfig::sendRateLimitExceeded($rateLimit);
     }
 
     // Initialize session
@@ -60,9 +50,7 @@ try {
 
     // Validate input structure
     if (!InputValidator::validateJSONInput($input, ['csrf_token', 'captcha_session_id', 'click_count'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Missing required parameters']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Missing required parameters'], 400);
     }
 
     $csrfToken = $input['csrf_token'];
@@ -71,43 +59,31 @@ try {
 
     // Validate parameter formats
     if (!InputValidator::validateCSRFTokenFormat($csrfToken)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid CSRF token format']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid CSRF token format'], 400);
     }
 
     if (!InputValidator::validateCaptchaSessionId($captchaSessionId)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid session ID']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid session ID'], 400);
     }
 
     if (!InputValidator::validateClickData($clickCount)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid click data']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid click data'], 400);
     }
 
     // Validate CSRF token
     if (!SessionManager::validateCSRFToken($csrfToken)) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid or expired CSRF token']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid or expired CSRF token'], 403);
     }
 
     // Verify CAPTCHA session exists and belongs to this client
     $captchaData = SessionManager::getCaptchaData($captchaSessionId);
     if ($captchaData === null) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid or expired CAPTCHA session']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid or expired CAPTCHA session'], 403);
     }
 
     // Check if all required data is present
     if (!isset($captchaData['targetWord']) || !isset($captchaData['clicksRequired'])) {
-        http_response_code(403);
-        echo json_encode(['error' => 'CAPTCHA session incomplete']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'CAPTCHA session incomplete'], 403);
     }
 
     // Validate the answer
@@ -116,32 +92,24 @@ try {
 
     // Check if the client clicked the correct number of times
     if ($clickCount < $clicksRequired) {
-        http_response_code(400);
-        echo json_encode([
+        SecurityConfig::sendResponse([
             'success' => false,
             'message' => 'Not enough clicks. Required: ' . $clicksRequired,
             'clicks_required' => $clicksRequired,
             'clicks_received' => $clickCount
-        ]);
-        exit;
+        ], 400);
     }
 
     // Success! User passed the CAPTCHA
-    // Generate a validation token that can be verified later
     $validationToken = SecurityConfig::generateToken();
 
-    // Store the validation result in the session
-    SessionManager::initializeSession();
-    if (!isset($_SESSION['CAPTCHA_VALIDATIONS'])) {
-        $_SESSION['CAPTCHA_VALIDATIONS'] = [];
-    }
-    $_SESSION['CAPTCHA_VALIDATIONS'][$captchaSessionId] = [
+    SecurityConfig::storeCaptchaValidation($captchaSessionId, [
         'validation_token' => $validationToken,
         'validated_at' => time(),
         'target_word' => $targetWord,
         'clicks_required' => $clicksRequired,
         'clicks_received' => $clickCount
-    ];
+    ]);
 
     // Clean up the CAPTCHA session
     SessionManager::destroyCaptchaSession($captchaSessionId);
@@ -152,8 +120,7 @@ try {
     // Generate new CSRF token for next request
     $newCSRFToken = SessionManager::generateCSRFToken();
 
-    http_response_code(200);
-    echo json_encode([
+    SecurityConfig::sendResponse([
         'success' => true,
         'message' => 'CAPTCHA validated successfully!',
         'validation_token' => $validationToken,
@@ -161,14 +128,12 @@ try {
         'target_word' => $targetWord,
         'clicks_required' => $clicksRequired,
         'clicks_received' => $clickCount
-    ]);
+    ], 200);
 
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
+    error_log('ValidateCaptcha failure: ' . $e->getMessage());
+    SecurityConfig::sendResponse([
         'success' => false,
-        'error' => 'Failed to validate CAPTCHA',
-        'message' => $e->getMessage()
-    ]);
+        'error' => 'Failed to validate CAPTCHA'
+    ], 500);
 }
-

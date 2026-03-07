@@ -147,8 +147,6 @@ export class CaptchaGenerator {
   async loadTextboxWords() {
     // API endpoint for the backend
     const apiUrl = '/backend/GenerateTextbox.php';
-    console.log('📡 Fetching words from:', apiUrl);
-
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -185,7 +183,6 @@ export class CaptchaGenerator {
 
     if (data.csrf_token) {
       this.csrfToken = data.csrf_token;
-      console.log('✅ CSRF token updated');
     }
 
     this.ui.initialize(
@@ -197,14 +194,13 @@ export class CaptchaGenerator {
     // Set up the click/keyboard validation handler
     this.ui.setClickValidationHandler((event, inputType) => {
       if (!this.isValidationActive) {
-        console.log(`${inputType === 'keyboard' ? 'Shift key' : 'Click'} ignored (audio not playing)`);
         return;
       }
 
       if (inputType === 'click') {
         const target = event.target;
-        const clickedWordArea = target instanceof Element && target.closest('#word-display');
-        if (!clickedWordArea) {
+        const clickedCaptchaArea = target instanceof Element && target.closest('#captcha_card');
+        if (!clickedCaptchaArea) {
           return;
         }
       }
@@ -220,8 +216,6 @@ export class CaptchaGenerator {
    */
   async startAudio() {
     const apiUrl = '/backend/GenerateAudio.php';
-    console.log('📡 Generating audio...');
-
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -249,7 +243,6 @@ export class CaptchaGenerator {
     // Update CSRF token for next request
     if (data.csrf_token) {
       this.csrfToken = data.csrf_token;
-      console.log('✅ CSRF token updated');
     }
 
     const leadInSeconds = Number(data.leadInSeconds ?? 0);
@@ -358,19 +351,11 @@ export class CaptchaGenerator {
    * @param {Object} feedback - Feedback object from validator
    */
   handleValidationComplete(feedback) {
-    console.log('✅ CAPTCHA validation complete:', feedback);
-
     // Stop audio immediately
     this.audio.stop();
-
-    // Stop displaying words
     this.ui.stopDisplayingWords();
-
-    // Hide audio controls and word display
     this.ui.hideAudioControls();
     this.ui.hideWordDisplay();
-
-    // Display validation feedback
     this.ui.displayClickFeedback(feedback);
 
     // Announce success to screen readers
@@ -384,10 +369,6 @@ export class CaptchaGenerator {
       }
     });
     window.dispatchEvent(validationEvent);
-
-    // Log the validation state for debugging
-    const state = this.validator.getState();
-    console.log('Final validation state:', state);
   }
 
   /**
@@ -395,19 +376,11 @@ export class CaptchaGenerator {
    * @param {Object} feedback - Feedback object from validator
    */
   handleValidationFailed(feedback) {
-    console.log('❌ CAPTCHA validation failed:', feedback);
-
     // Stop audio immediately
     this.audio.stop();
-
-    // Stop displaying words
     this.ui.stopDisplayingWords();
-
-    // Hide audio controls and word display
     this.ui.hideAudioControls();
     this.ui.hideWordDisplay();
-
-    // Display failure feedback
     this.ui.displayClickFeedback(feedback);
 
     // Announce failure to screen readers
@@ -421,10 +394,6 @@ export class CaptchaGenerator {
       }
     });
     window.dispatchEvent(failureEvent);
-
-    // Log the failure state for debugging
-    const state = this.validator.getState();
-    console.log('Final failure state:', state);
   }
 
   /**

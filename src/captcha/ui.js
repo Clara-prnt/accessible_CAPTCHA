@@ -299,18 +299,6 @@ export class CaptchaUI {
   }
 
   /**
-   * Show a success message
-   * @param {string} message - The success message to display
-   */
-  /*showSuccess(message) {
-    const validationElement = document.getElementById('validation');
-    if (validationElement) {
-      validationElement.textContent = message;
-      validationElement.style.display = 'block';
-    }
-  }*/
-
-  /**
    * Hide audio controls
    */
   hideAudioControls() {

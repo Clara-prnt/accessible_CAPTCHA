@@ -548,6 +548,16 @@ footer {
   color: #666;
 }
 
+/* Support action buttons */
+.support-action-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-start;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
 /* Report form */
 .report-form {
   display: flex;

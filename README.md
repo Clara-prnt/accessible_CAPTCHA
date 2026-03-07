@@ -36,3 +36,21 @@ That's it! The script will:
 - ✅ Start the PHP server automatically
 - ✅ Start Vite automatically
 - ✅ Open your browser automatically
+
+## Security anti-bot tests
+
+Run the automated anti-bot checks locally:
+
+```powershell
+cd C:\your_path\captcha_vite
+powershell -ExecutionPolicy Bypass -File .\security-bot-check.ps1 -ResetRateLimit
+```
+
+Generate a report to a custom file:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\security-bot-check.ps1 -BaseUrl "http://127.0.0.1:8000/backend" -ResetRateLimit -ReportPath ".\security-bot-check-report.txt"
+```
+
+CI automation is configured in `.github/workflows/security-bot-check.yml`.
+It runs on push, pull request, and manual trigger, then uploads `security-bot-check-report.txt` as an artifact.

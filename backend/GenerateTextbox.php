@@ -10,13 +10,11 @@ require_once __DIR__ . '/InputValidator.php';
 require_once __DIR__ . '/ScenarioLoader.php';
 
 // Set security headers
-foreach (SecurityConfig::SECURITY_HEADERS as $header => $value) {
-    header("$header: $value");
-}
+SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS)) {
+if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
 }
@@ -30,21 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     // Only allow POST requests
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['error' => 'Method not allowed']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Method not allowed'], 405);
     }
 
     // Check rate limiting
     $rateLimit = RateLimiter::checkValidationLimit();
     if (!$rateLimit['allowed']) {
-        http_response_code(429);
-        echo json_encode([
-            'error' => 'Rate limit exceeded',
-            'message' => $rateLimit['message'],
-            'retry_after' => $rateLimit['retry_after']
-        ]);
-        exit;
+        SecurityConfig::sendRateLimitExceeded($rateLimit);
     }
 
     // Initialize session
@@ -55,9 +45,7 @@ try {
 
     // Validate input structure
     if (!InputValidator::validateJSONInput($input, ['scenarioId', 'targetWord', 'csrf_token', 'captcha_session_id'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Missing required parameters']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Missing required parameters'], 400);
     }
 
     // Validate and extract parameters
@@ -69,27 +57,19 @@ try {
 
     // Validate parameter formats
     if (!InputValidator::validateScenarioId($scenarioId)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid scenario ID']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid scenario ID'], 400);
     }
 
     if (!InputValidator::validateTargetWord($targetWord)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid target word']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid target word'], 400);
     }
 
     if (!InputValidator::validateCSRFTokenFormat($csrfToken)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid CSRF token format']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid CSRF token format'], 400);
     }
 
     if (!InputValidator::validateCaptchaSessionId($captchaSessionId)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid session ID']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid session ID'], 400);
     }
 
     // Validate clicks required
@@ -99,17 +79,13 @@ try {
 
     // Validate CSRF token
     if (!SessionManager::validateCSRFToken($csrfToken)) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid or expired CSRF token']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid or expired CSRF token'], 403);
     }
 
     // Verify CAPTCHA session exists and belongs to this client
     $captchaData = SessionManager::getCaptchaData($captchaSessionId);
     if ($captchaData === null) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid or expired CAPTCHA session']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid or expired CAPTCHA session'], 403);
     }
 
     // Load scenario and validate it exists
@@ -119,7 +95,6 @@ try {
     $scenarioWords = $scenario['words'];
 
     // Generate a list of random words to display
-    // Include the target word and some distractors
     $displayWords = [];
 
     // Add the target word
@@ -157,10 +132,7 @@ try {
     ];
     SessionManager::setCaptchaData($captchaSessionId, array_merge($captchaData, $textboxData));
 
-    // Return the response with the words to display and security tokens
-    // wordDisplayDuration: time each word is displayed (in milliseconds)
-    // wordInterval: time between word changes (in milliseconds)
-    echo json_encode([
+    SecurityConfig::sendResponse([
         'success' => true,
         'words' => $displayWords,
         'targetWord' => $targetWord,
@@ -170,12 +142,11 @@ try {
         'wordInterval' => 1000,
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId
-    ]);
+    ], 200);
 
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'Failed to generate textbox',
-        'message' => $e->getMessage()
-    ]);
+    error_log('GenerateTextbox failure: ' . $e->getMessage());
+    SecurityConfig::sendResponse([
+        'error' => 'Failed to generate textbox'
+    ], 500);
 }

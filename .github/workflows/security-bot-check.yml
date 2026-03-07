@@ -1,0 +1,41 @@
+name: Security Bot Check
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  security-bot-check:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+
+      - name: Start local PHP server
+        shell: pwsh
+        run: |
+          Start-Process php -ArgumentList '-S 127.0.0.1:8000 -t .' -NoNewWindow
+          Start-Sleep -Seconds 3
+
+      - name: Run anti-bot security tests
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\security-bot-check.ps1 -BaseUrl "http://127.0.0.1:8000/backend" -ResetRateLimit -ReportPath ".\security-bot-check-report.txt"
+
+      - name: Upload security test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-bot-check-report
+          path: security-bot-check-report.txt
+

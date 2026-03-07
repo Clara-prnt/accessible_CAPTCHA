@@ -12,13 +12,11 @@ require_once __DIR__ . '/SessionManager.php';
 require_once __DIR__ . '/RateLimiter.php';
 
 // Set security headers
-foreach (SecurityConfig::SECURITY_HEADERS as $header => $value) {
-    header("$header: $value");
-}
+SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS)) {
+if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
 }
@@ -34,21 +32,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     // Only allow POST requests
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['error' => 'Method not allowed']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Method not allowed'], 405);
     }
 
     // Check rate limiting
     $rateLimit = RateLimiter::checkInitLimit();
     if (!$rateLimit['allowed']) {
-        http_response_code(429);
-        echo json_encode([
-            'error' => 'Rate limit exceeded',
-            'message' => $rateLimit['message'],
-            'retry_after' => $rateLimit['retry_after']
-        ]);
-        exit;
+        SecurityConfig::sendRateLimitExceeded($rateLimit);
     }
 
     // Initialize session and generate CSRF token
@@ -65,19 +55,17 @@ try {
         'csrf_token' => $csrfToken,
     ]);
 
-    http_response_code(200);
-    echo json_encode([
+    SecurityConfig::sendResponse([
         'success' => true,
         'csrf_token' => $csrfToken,
         'captcha_session_id' => $captchaSessionId,
         'session_id' => $sessionId,
-    ]);
+    ], 200);
 
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'Failed to initialize CAPTCHA',
-        'message' => $e->getMessage()
-    ]);
+    error_log('InitCaptcha failure: ' . $e->getMessage());
+    SecurityConfig::sendResponse([
+        'error' => 'Failed to initialize CAPTCHA'
+    ], 500);
 }
 

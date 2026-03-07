@@ -1,11 +1,10 @@
 <?php
 /**
  * RateLimiter.php
- * Implémente le rate limiting basé sur l'IP
+ * Rate limiting partage entre toutes les sessions pour eviter le bypass via rotation de cookies.
  */
 
 require_once __DIR__ . '/SecurityConfig.php';
-require_once __DIR__ . '/SessionManager.php';
 
 class RateLimiter {
 
@@ -35,85 +34,185 @@ class RateLimiter {
 
     /**
      * Generic rate limit check
-     * @param string $type Type of limit (used as key in session)
-     * @param int $maxRequests Maximum number of requests allowed
-     * @param int $timeWindow Time window in seconds
+     * @param string $type
+     * @param int $maxRequests
+     * @param int $timeWindow
      * @return array ['allowed' => bool, 'message' => string, 'retry_after' => int]
      */
     private static function checkLimit($type, $maxRequests, $timeWindow) {
-        SessionManager::initializeSession();
-
-        $clientIP = SecurityConfig::getClientIP();
-        $key = 'RATE_LIMIT_' . $type . '_' . $clientIP;
-
+        $clientKey = self::buildClientKey($type);
+        $path = self::getStoragePath($clientKey);
         $now = time();
 
-        // Initialize or retrieve rate limit data
-        if (!isset($_SESSION[$key])) {
-            $_SESSION[$key] = [
-                'count' => 0,
-                'window_start' => $now,
-                'blocked_until' => 0
-            ];
-        }
-
-        $limitData = &$_SESSION[$key];
-
-        // Check if user is still blocked
-        if ($limitData['blocked_until'] > $now) {
-            $retryAfter = $limitData['blocked_until'] - $now;
+        $handle = fopen($path, 'c+');
+        if ($handle === false) {
+            // Fail closed: if storage is unavailable, do not grant unlimited requests.
             return [
                 'allowed' => false,
-                'message' => "Rate limit exceeded. Please try again in $retryAfter seconds.",
-                'retry_after' => $retryAfter
+                'message' => 'Rate limit storage unavailable. Please retry later.',
+                'retry_after' => 10
             ];
         }
 
-        // Check if we're still in the current time window
-        if ($now - $limitData['window_start'] > $timeWindow) {
-            // Reset the window
-            $limitData['count'] = 0;
-            $limitData['window_start'] = $now;
-        }
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                return [
+                    'allowed' => false,
+                    'message' => 'Rate limiter busy. Please retry later.',
+                    'retry_after' => 2
+                ];
+            }
 
-        // Check if request count exceeds limit
-        if ($limitData['count'] >= $maxRequests) {
-            // Block for the remainder of the window
-            $retryAfter = $timeWindow - ($now - $limitData['window_start']);
-            $limitData['blocked_until'] = $now + $retryAfter;
+            $raw = stream_get_contents($handle);
+            $limitData = json_decode($raw ?: '', true);
+
+            if (!is_array($limitData)) {
+                $limitData = [
+                    'count' => 0,
+                    'window_start' => $now,
+                    'blocked_until' => 0,
+                    'updated_at' => $now
+                ];
+            }
+
+            if (($limitData['blocked_until'] ?? 0) > $now) {
+                $retryAfter = (int)($limitData['blocked_until'] - $now);
+                return [
+                    'allowed' => false,
+                    'message' => "Rate limit exceeded. Please try again in $retryAfter seconds.",
+                    'retry_after' => max(1, $retryAfter)
+                ];
+            }
+
+            if ($now - (int)($limitData['window_start'] ?? $now) > $timeWindow) {
+                $limitData['count'] = 0;
+                $limitData['window_start'] = $now;
+                $limitData['blocked_until'] = 0;
+            }
+
+            if ((int)($limitData['count'] ?? 0) >= $maxRequests) {
+                $retryAfter = max(1, $timeWindow - ($now - (int)$limitData['window_start']));
+                $limitData['blocked_until'] = $now + $retryAfter;
+                $limitData['updated_at'] = $now;
+                self::persist($handle, $limitData);
+
+                return [
+                    'allowed' => false,
+                    'message' => "Too many requests. Please try again in $retryAfter seconds.",
+                    'retry_after' => $retryAfter
+                ];
+            }
+
+            $limitData['count'] = (int)($limitData['count'] ?? 0) + 1;
+            $limitData['updated_at'] = $now;
+            self::persist($handle, $limitData);
 
             return [
-                'allowed' => false,
-                'message' => "Too many requests. Please try again in $retryAfter seconds.",
-                'retry_after' => $retryAfter
+                'allowed' => true,
+                'message' => 'OK',
+                'retry_after' => 0
             ];
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+            self::cleanupStorageIfNeeded();
         }
-
-        // Increment request count
-        $limitData['count']++;
-        $_SESSION[$key] = $limitData;
-
-        return [
-            'allowed' => true,
-            'message' => 'OK',
-            'retry_after' => 0
-        ];
     }
 
     /**
-     * Record a successful CAPTCHA completion (reduces rate limit pressure)
-     * @param string $type Type of limit
+     * Record a successful CAPTCHA completion (slight penalty reduction)
+     * @param string $type
      */
     public static function recordSuccess($type = 'validation_requests') {
-        SessionManager::initializeSession();
+        $clientKey = self::buildClientKey($type);
+        $path = self::getStoragePath($clientKey);
 
-        $clientIP = SecurityConfig::getClientIP();
-        $key = 'RATE_LIMIT_' . $type . '_' . $clientIP;
+        $handle = fopen($path, 'c+');
+        if ($handle === false) {
+            return;
+        }
 
-        if (isset($_SESSION[$key])) {
-            // Reduce count by 1 (but not below 0) on success
-            $_SESSION[$key]['count'] = max(0, $_SESSION[$key]['count'] - 1);
+        try {
+            if (!flock($handle, LOCK_EX)) {
+                return;
+            }
+
+            $raw = stream_get_contents($handle);
+            $limitData = json_decode($raw ?: '', true);
+            if (!is_array($limitData)) {
+                return;
+            }
+
+            $limitData['count'] = max(0, (int)($limitData['count'] ?? 0) - 1);
+            $limitData['updated_at'] = time();
+            self::persist($handle, $limitData);
+        } finally {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+        }
+    }
+
+    /**
+     * Build per-client key from stable signals.
+     * @param string $type
+     * @return string
+     */
+    private static function buildClientKey($type) {
+        $ip = SecurityConfig::getClientIP();
+        $ua = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+        $uaHash = substr(hash('sha256', $ua), 0, 16);
+        return $type . '|' . $ip . '|' . $uaHash;
+    }
+
+    /**
+     * @param string $clientKey
+     * @return string
+     */
+    private static function getStoragePath($clientKey) {
+        $dir = __DIR__ . '/../tmp/rate_limit';
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0700, true);
+        }
+
+        $safeName = hash('sha256', $clientKey) . '.json';
+        return $dir . '/' . $safeName;
+    }
+
+    /**
+     * @param resource $handle
+     * @param array $limitData
+     * @return void
+     */
+    private static function persist($handle, $limitData) {
+        rewind($handle);
+        ftruncate($handle, 0);
+        fwrite($handle, json_encode($limitData));
+        fflush($handle);
+    }
+
+    /**
+     * Cleanup stale limiter files opportunistically.
+     * @return void
+     */
+    private static function cleanupStorageIfNeeded() {
+        // Run cleanup rarely to avoid overhead on every request.
+        if (random_int(1, 100) !== 1) {
+            return;
+        }
+
+        $dir = __DIR__ . '/../tmp/rate_limit';
+        if (!is_dir($dir)) {
+            return;
+        }
+
+        $now = time();
+        $maxAge = max(SecurityConfig::RATE_LIMIT_INIT_WINDOW, SecurityConfig::RATE_LIMIT_VALIDATION_WINDOW) * 3;
+
+        foreach (glob($dir . '/*.json') ?: [] as $file) {
+            $mtime = @filemtime($file);
+            if ($mtime !== false && ($now - $mtime) > $maxAge) {
+                @unlink($file);
+            }
         }
     }
 }
-

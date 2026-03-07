@@ -10,13 +10,11 @@ require_once __DIR__ . '/InputValidator.php';
 require_once __DIR__ . '/ScenarioLoader.php';
 
 // Set security headers
-foreach (SecurityConfig::SECURITY_HEADERS as $header => $value) {
-    header("$header: $value");
-}
+SecurityConfig::applyApiSecurityHeaders();
 
 // Handle CORS
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : '';
-if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS)) {
+if (in_array($origin, SecurityConfig::ALLOWED_ORIGINS, true)) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
 }
@@ -30,21 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 try {
     // Only allow POST requests
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        http_response_code(405);
-        echo json_encode(['error' => 'Method not allowed']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Method not allowed'], 405);
     }
 
     // Check rate limiting
     $rateLimit = RateLimiter::checkValidationLimit();
     if (!$rateLimit['allowed']) {
-        http_response_code(429);
-        echo json_encode([
-            'error' => 'Rate limit exceeded',
-            'message' => $rateLimit['message'],
-            'retry_after' => $rateLimit['retry_after']
-        ]);
-        exit;
+        SecurityConfig::sendRateLimitExceeded($rateLimit);
     }
 
     // Initialize session
@@ -55,9 +45,7 @@ try {
 
     // Validate input structure
     if (!InputValidator::validateJSONInput($input, ['scenarioId', 'targetWord', 'csrf_token', 'captcha_session_id'])) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Missing required parameters']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Missing required parameters'], 400);
     }
 
     // Validate and extract parameters
@@ -68,46 +56,34 @@ try {
 
     // Validate parameter formats
     if (!InputValidator::validateScenarioId($scenarioId)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid scenario ID']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid scenario ID'], 400);
     }
 
     if (!InputValidator::validateTargetWord($targetWord)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid target word']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid target word'], 400);
     }
 
     if (!InputValidator::validateCSRFTokenFormat($csrfToken)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid CSRF token format']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid CSRF token format'], 400);
     }
 
     if (!InputValidator::validateCaptchaSessionId($captchaSessionId)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid session ID']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid session ID'], 400);
     }
 
     // Validate CSRF token
     if (!SessionManager::validateCSRFToken($csrfToken)) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid or expired CSRF token']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid or expired CSRF token'], 403);
     }
 
     // Verify CAPTCHA session exists and belongs to this client
     $captchaData = SessionManager::getCaptchaData($captchaSessionId);
     if ($captchaData === null) {
-        http_response_code(403);
-        echo json_encode(['error' => 'Invalid or expired CAPTCHA session']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Invalid or expired CAPTCHA session'], 403);
     }
 
     // Load scenarios from JSON file
-    $scenario = loadScenariosFromJSONFile($scenarioId);
+    loadScenariosFromJSONFile($scenarioId);
 
     // Prepare the Python command
     $pythonScript = __DIR__ . '/generate_audio.py';
@@ -126,13 +102,11 @@ try {
     $result = json_decode($output, true);
 
     if ($result === null) {
-        throw new Exception('Invalid response from Python script: ' . $output);
+        throw new Exception('Invalid response from Python script');
     }
 
     if (isset($result['error'])) {
-        http_response_code(500);
-        echo json_encode(['error' => $result['error']]);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Audio generation failed'], 500);
     }
 
     // Update CAPTCHA session data
@@ -150,16 +124,16 @@ try {
     $newCSRFToken = SessionManager::generateCSRFToken();
 
     // Return the audio response with security tokens
-    echo json_encode(array_merge($result, [
+    SecurityConfig::sendResponse(array_merge($result, [
         'csrf_token' => $newCSRFToken,
         'captcha_session_id' => $captchaSessionId,
         'success' => true
-    ]));
+    ]), 200);
 
 } catch (Exception $e) {
-    http_response_code(500);
-    echo json_encode([
-        'error' => 'Failed to generate audio',
-        'message' => $e->getMessage()
-    ]);
+    error_log('GenerateAudio failure: ' . $e->getMessage());
+    SecurityConfig::sendResponse([
+        'error' => 'Failed to generate audio'
+    ], 500);
 }
+
