@@ -197,5 +197,4 @@ describe('CAPTCHA Validation Flow', () => {
     document.body.removeChild(mockAudioControls);
     document.body.removeChild(mockWordBox);
   });
-
 });

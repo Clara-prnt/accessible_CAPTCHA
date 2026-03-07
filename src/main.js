@@ -25,8 +25,6 @@ form.addEventListener('submit', async (e) => {
  * Listen for CAPTCHA validation completion
  */
 window.addEventListener('captcha-validated', (event) => {
-  console.log('📋 CAPTCHA validated event received');
-
   // Hide the CAPTCHA card and form
   captchaCard.hidden = true;
   formContainer.hidden = true;
@@ -38,11 +36,6 @@ window.addEventListener('captcha-validated', (event) => {
   successOkButton.addEventListener('click', () => {
     successCard.hidden = true;
     dashboard.hidden = false;
-
-    // Optional: Redirect to a specific URL after a delay
-    // setTimeout(() => {
-    //   window.location.href = '/dashboard'; // or any other URL
-    // }, 2000);
   });
 });
 
@@ -50,8 +43,6 @@ window.addEventListener('captcha-validated', (event) => {
  * Listen for CAPTCHA validation failure (all attempts exhausted)
  */
 window.addEventListener('captcha-failed', (event) => {
-  console.log('❌ CAPTCHA failed event received');
-
   // Hide the CAPTCHA card and form
   captchaCard.hidden = true;
   formContainer.hidden = true;
