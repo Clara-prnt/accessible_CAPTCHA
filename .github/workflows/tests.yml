@@ -1,4 +1,4 @@
-name: tests
+name: 🧪 Unit and E2E Tests (Security and UI Checks)
 
 on:
   push:
@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   jest:
-    name: Jest unit tests
+    name: 🔎 Jest unit tests
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -34,7 +34,7 @@ jobs:
         run: npm run test -- --ci --runInBand
 
   playwright:
-    name: Playwright E2E tests
+    name: 🖥️ Playwright E2E tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: jest
@@ -69,7 +69,7 @@ jobs:
           if-no-files-found: ignore
 
   security-bot-check:
-    name: Security bot check
+    name: 🤖 Security bot check
     runs-on: windows-latest
     timeout-minutes: 20
 

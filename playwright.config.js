@@ -1,5 +1,7 @@
 export default {
   testDir: './tests',
+  testMatch: ['**/*.spec.js'],
+  testIgnore: ['**/*.test.js'],
   use: {
     baseURL: 'http://localhost:5173',
   },
