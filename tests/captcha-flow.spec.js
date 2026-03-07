@@ -86,13 +86,16 @@ test.describe('CAPTCHA End-to-End Flow', () => {
     await page.click('#audio-toggle');
     await expect(page.locator('#audio-toggle')).toHaveAttribute('aria-pressed', 'true');
 
-    // The word container must be visible before validation clicks.
-    const wordDisplay = page.locator('#word-display');
-    await expect(wordDisplay).toBeVisible();
+    // Wait until the word is displayed before clicking, to avoid "Wrong word" feedback.
+    await expect(page.locator('#word-display')).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('#word-display')).not.toHaveText('');
 
-    // Click on the visible word area inside the CAPTCHA card.
+    const wordDisplay = page.locator('#word-display');
     await wordDisplay.click();
     await wordDisplay.click();
+
+    await expect(page.locator('#success_card')).toBeVisible();
+    await expect(page.locator('#success-message')).toContainText('CAPTCHA Validated!');
 
     await expect(page.locator('#success_card')).toBeVisible();
     await expect(page.locator('#success-message')).toContainText('CAPTCHA Validated!');
