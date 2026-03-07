@@ -84,14 +84,15 @@ test.describe('CAPTCHA End-to-End Flow', () => {
 
     // Start audio so validation becomes active.
     await page.click('#audio-toggle');
+    await expect(page.locator('#audio-toggle')).toHaveAttribute('aria-pressed', 'true');
 
-    // The word container and at least one word should appear quickly.
-    await expect(page.locator('#word-display')).toBeVisible();
+    // The word container must be visible before validation clicks.
+    const wordDisplay = page.locator('#word-display');
+    await expect(wordDisplay).toBeVisible();
 
-    // Two rapid clicks are enough due to deterministic Math.random mock.
-    const captchaBox = page.locator('#captcha');
-    await captchaBox.click();
-    await captchaBox.click();
+    // Click on the visible word area inside the CAPTCHA card.
+    await wordDisplay.click();
+    await wordDisplay.click();
 
     await expect(page.locator('#success_card')).toBeVisible();
     await expect(page.locator('#success-message')).toContainText('CAPTCHA Validated!');
