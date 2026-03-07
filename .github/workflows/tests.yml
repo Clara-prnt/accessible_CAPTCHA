@@ -116,7 +116,13 @@ jobs:
               exit 1
             }
 
-            .\security-bot-check.ps1 -BaseUrl "http://127.0.0.1:8000/backend" -ResetRateLimit -ReportPath ".\security-bot-check-report.txt"
+            $securityScript = Join-Path $PWD 'tests\security-bot-check.ps1'
+            if (-not (Test-Path $securityScript)) {
+              Write-Host "Security script not found at: $securityScript"
+              exit 1
+            }
+
+            & $securityScript -BaseUrl "http://127.0.0.1:8000/backend" -ResetRateLimit -ReportPath ".\security-bot-check-report.txt"
           }
           finally {
             if ($phpProcess -and -not $phpProcess.HasExited) {

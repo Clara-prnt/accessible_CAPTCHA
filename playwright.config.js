@@ -1,5 +1,5 @@
 export default {
-  testDir: './tests/e2e',
+  testDir: './tests',
   use: {
     baseURL: 'http://localhost:5173',
   },
