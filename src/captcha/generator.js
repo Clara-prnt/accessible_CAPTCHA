@@ -126,7 +126,7 @@ export class CaptchaGenerator {
     });
 
     this.validator.onValidation((feedback) => {
-      this.handleValidationComplete(feedback);
+      this.handleValidationComplete(feedback).then(() => {});
     });
 
     // Set up failure callback for exhausted attempts
@@ -347,7 +347,7 @@ export class CaptchaGenerator {
    * Handle validation complete event
    * @param {Object} feedback - Feedback object from validator
    */
-  handleValidationComplete(feedback) {
+  async handleValidationComplete(feedback) {
     // Stop audio immediately
     this.audio.stop();
     this.ui.stopDisplayingWords();
@@ -358,6 +358,15 @@ export class CaptchaGenerator {
     // Announce success to screen readers
     this.accessibility.announceValidationComplete();
 
+    // Validate on server side for security
+    try {
+      await this.validateOnServer(feedback);
+    } catch (error) {
+      this.ui.showError('Server validation failed: ' + error.message);
+      // Still emit event for better UX, but log the security issue
+      console.error('⚠️ SECURITY WARNING: Server validation failed', error);
+    }
+
     // Emit a custom event to notify about validation completion
     const validationEvent = new CustomEvent('captcha-validated', {
       detail: {
@@ -366,6 +375,42 @@ export class CaptchaGenerator {
       }
     });
     window.dispatchEvent(validationEvent);
+  }
+
+  /**
+   * Validate CAPTCHA on server side (final security check)
+   * @param {Object} feedback - Feedback from local validator
+   * @returns {Promise<void>}
+   */
+  async validateOnServer(feedback) {
+    const validatorState = this.validator.getState();
+
+    const response = await fetch('/backend/ValidateCaptcha.php', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        csrf_token: this.csrfToken,
+        captcha_session_id: this.captchaSessionId,
+        click_count: validatorState.clickSequence.length
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Server validation failed (HTTP ${response.status})`);
+    }
+
+    const data = await response.json();
+
+    if (!data.success) {
+      throw new Error(data.error || 'Server validation rejected');
+    }
+
+    // Update CSRF token for next request
+    if (data.csrf_token) {
+      this.csrfToken = data.csrf_token;
+    }
   }
 
   /**
