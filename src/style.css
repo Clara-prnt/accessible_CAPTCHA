@@ -97,9 +97,9 @@ h2 {
 }
 
 #audio-toggle {
-  background: linear-gradient(180deg, #060a8c, #01025e);
+  background: var(--play-button-bg);
   box-shadow: 0 6px 14px rgba(15, 27, 189, 0.25);
-  color: white;
+  color: var(--play-button-text);
   width: 80%;
   padding: 8px 16px;
   margin: 15px 0;
@@ -110,7 +110,7 @@ h2 {
 }
 
 #audio-toggle:hover {
-  background: linear-gradient(180deg, #060a8c, #01025e);
+  background: var(--play-button-hover-bg);
   transform: translateY(-1px);
 }
 
@@ -447,7 +447,7 @@ footer {
 
 .modal-header h2 {
   margin: 0;
-  color: #060a8c;
+  color: var(--link-color);
   font-size: 1.8em;
 }
 
@@ -455,7 +455,7 @@ footer {
   background: transparent;
   border: none;
   font-size: 2em;
-  color: #666;
+  color: var(--muted-text);
   cursor: pointer;
   padding: 0;
   width: 40px;
@@ -468,8 +468,8 @@ footer {
 }
 
 .modal-close:hover {
-  background: #f0f0f0;
-  color: #000;
+  background: var(--surface-hover-bg);
+  color: var(--page-text);
 }
 
 /* Modal content */
@@ -479,7 +479,7 @@ footer {
 }
 
 .modal-content h3 {
-  color: #060a8c;
+  color: var(--link-color);
   margin-top: 1.5rem;
   margin-bottom: 0.5rem;
 }
@@ -498,7 +498,7 @@ footer {
 }
 
 .modal-content a {
-  color: #060a8c;
+  color: var(--link-color);
   text-decoration: none;
   font-weight: 600;
 }
@@ -527,7 +527,7 @@ footer {
 
 .support-option:hover {
   border-color: #060a8c;
-  background: #f8f9fa;
+  background: var(--surface-hover-bg);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(6, 10, 140, 0.1);
 }
@@ -545,7 +545,7 @@ footer {
 
 .support-option-desc {
   font-size: 0.9em;
-  color: #666;
+  color: var(--subtle-text);
 }
 
 /* Support action buttons */
@@ -594,9 +594,10 @@ footer {
 .report-form input:focus,
 .report-form textarea:focus,
 .report-form select:focus {
-  outline: none;
-  border-color: #060a8c;
-  box-shadow: 0 0 0 3px rgba(6, 10, 140, 0.1);
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 1px;
+  border-color: var(--focus-ring);
+  box-shadow: none;
 }
 
 .report-form-actions {
@@ -739,7 +740,7 @@ input:focus,
 input:focus-visible,
 select:focus,
 select:focus-visible {
-  outline: 3px solid #060a8c;
+  outline: 3px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
@@ -773,10 +774,11 @@ select:focus-visible {
 
 @media (max-width: 768px) {
   body {
-    padding: 0 3vh;
+    padding: 0;
+    width: 100%;
   }
   .card {
-    width: 100%;
+    width: 90%;
   }
   form {
     width: 100%;
@@ -806,4 +808,210 @@ select:focus-visible {
   input[type="range"] {
     width: 100%;
   }
+}
+
+/* ============================================
+   THEME SYSTEM (LIGHT / DARK)
+   ============================================ */
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page-bg: #ffffff;
+  --page-text: #1f2937;
+  --muted-text: #6b7280;
+  --subtle-text: #4b5563;
+  --link-color: #000396;
+  --link-hover: #535bf2;
+  --card-bg: #f3f4f6;
+  --card-text: #1f2937;
+  --card-border: rgba(17, 24, 39, 0.15);
+  --surface-bg: #ffffff;
+  --surface-text: #111827;
+  --surface-border: #d1d5db;
+  --surface-hover-bg: #f8f9fa;
+  --focus-ring: #060a8c;
+  --button-bg: #f3f4f6;
+  --button-text: #1f2937;
+  --input-bg: #ffffff;
+  --input-text: #111827;
+  --input-border: #d1d5db;
+  --primary-button-bg: #060a8c;
+  --primary-button-hover-bg: #01025e;
+  --primary-button-text: #ffffff;
+  --primary-button-border: #01025e;
+  --play-button-bg: linear-gradient(180deg, #060a8c, #01025e);
+  --play-button-hover-bg: linear-gradient(180deg, #060a8c, #01025e);
+  --play-button-text: #ffffff;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page-bg: #111827;
+  --page-text: #f3f4f6;
+  --muted-text: #9ca3af;
+  --subtle-text: #cbd5e1;
+  --link-color: #8ea2ff;
+  --link-hover: #b4c1ff;
+  --card-bg: #1f2937;
+  --card-text: #f3f4f6;
+  --card-border: rgba(229, 231, 235, 0.2);
+  --surface-bg: #111827;
+  --surface-text: #f9fafb;
+  --surface-border: #374151;
+  --surface-hover-bg: #1f2937;
+  --focus-ring: #c7d2fe;
+  --button-bg: #374151;
+  --button-text: #f9fafb;
+  --input-bg: #0f172a;
+  --input-text: #f9fafb;
+  --input-border: #4b5563;
+  --primary-button-bg: #e5e7eb;
+  --primary-button-hover-bg: #d1d5db;
+  --primary-button-text: #111827;
+  --primary-button-border: #9ca3af;
+  --play-button-bg: #e5e7eb;
+  --play-button-hover-bg: #d1d5db;
+  --play-button-text: #060a8c;
+}
+
+:root:not([data-theme]) {
+  color-scheme: light;
+  --page-bg: #ffffff;
+  --page-text: #1f2937;
+  --muted-text: #6b7280;
+  --subtle-text: #4b5563;
+  --link-color: #000396;
+  --link-hover: #535bf2;
+  --card-bg: #f3f4f6;
+  --card-text: #1f2937;
+  --card-border: rgba(17, 24, 39, 0.15);
+  --surface-bg: #ffffff;
+  --surface-text: #111827;
+  --surface-border: #d1d5db;
+  --surface-hover-bg: #f8f9fa;
+  --focus-ring: #060a8c;
+  --button-bg: #f3f4f6;
+  --button-text: #1f2937;
+  --input-bg: #ffffff;
+  --input-text: #111827;
+  --input-border: #d1d5db;
+  --primary-button-bg: #060a8c;
+  --primary-button-hover-bg: #01025e;
+  --primary-button-text: #ffffff;
+  --primary-button-border: #01025e;
+  --play-button-bg: linear-gradient(180deg, #060a8c, #01025e);
+  --play-button-hover-bg: linear-gradient(180deg, #060a8c, #01025e);
+  --play-button-text: #ffffff;
+}
+
+body {
+  background-color: var(--page-bg);
+  color: var(--page-text);
+}
+
+a {
+  color: var(--link-color);
+}
+
+a:hover {
+  color: var(--link-hover);
+}
+
+.card {
+  background-color: var(--card-bg);
+  color: var(--card-text);
+  border-color: var(--card-border);
+}
+
+form,
+#form p,
+#app p,
+#app h1 {
+  color: var(--page-text);
+}
+
+input,
+select,
+textarea {
+  background-color: var(--input-bg);
+  color: var(--input-text);
+  border-color: var(--input-border);
+}
+
+button {
+  background-color: var(--button-bg);
+  color: var(--button-text);
+}
+
+#theme-toggle {
+  margin-top: 0.75rem;
+  border: 1px solid var(--surface-border);
+  background: var(--surface-bg);
+  color: var(--surface-text);
+}
+
+#audio-status,
+.control,
+.control span,
+#success-message p,
+.modal-content,
+.modal-content p,
+.modal-content li,
+.report-form label {
+  color: var(--surface-text);
+}
+
+.audio-controls,
+.modal-container,
+.support-option,
+.keyboard-help-dialog,
+#word-display,
+.report-form input,
+.report-form textarea,
+.report-form select {
+  background: var(--surface-bg);
+  color: var(--surface-text);
+  border-color: var(--surface-border);
+}
+
+#word-display {
+  border-color: var(--surface-border);
+}
+
+#links {
+  border-top-color: var(--surface-border);
+}
+
+footer,
+#dashboard p {
+  color: var(--muted-text);
+}
+
+#dashboard h2 {
+  color: var(--page-text);
+}
+
+:root[data-theme="dark"] .modal-header h2,
+:root[data-theme="dark"] .support-option-title,
+:root[data-theme="dark"] .modal-content a,
+:root[data-theme="dark"] .keyboard-help-dialog h2,
+:root[data-theme="dark"] .keyboard-help-dialog li {
+  color: #c7d2fe;
+}
+
+:root[data-theme="dark"] .support-option-desc,
+:root[data-theme="dark"] .modal-close {
+  color: var(--subtle-text);
+}
+
+/* Login button: stronger contrast in both themes */
+#form button[type="submit"] {
+  background: var(--primary-button-bg);
+  color: var(--primary-button-text);
+  border: 1px solid var(--primary-button-border);
+  font-weight: 700;
+}
+
+#form button[type="submit"]:hover {
+  background: var(--primary-button-hover-bg);
 }

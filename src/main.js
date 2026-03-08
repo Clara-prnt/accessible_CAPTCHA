@@ -1,6 +1,47 @@
 import './style.css'
 import { CaptchaGenerator } from './captcha/generator.js'
 
+const THEME_STORAGE_KEY = 'captcha-theme';
+const themeToggleButton = document.getElementById('theme-toggle');
+
+function getPreferredTheme() {
+  const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+  if (storedTheme === 'light' || storedTheme === 'dark') {
+    return storedTheme;
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function updateThemeToggleLabel(theme) {
+  if (!themeToggleButton) return;
+
+  const isDark = theme === 'dark';
+  themeToggleButton.textContent = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+  themeToggleButton.setAttribute('aria-pressed', String(isDark));
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  updateThemeToggleLabel(theme);
+}
+
+function initializeTheme() {
+  applyTheme(getPreferredTheme());
+
+  if (!themeToggleButton) return;
+
+  themeToggleButton.addEventListener('click', () => {
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+    applyTheme(nextTheme);
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+  });
+}
+
+initializeTheme();
+
 const form = document.querySelector('#form form');
 const captchaCard = document.getElementById('captcha_card');
 const successCard = document.getElementById('success_card');
@@ -24,7 +65,7 @@ form.addEventListener('submit', async (e) => {
 /**
  * Listen for CAPTCHA validation completion
  */
-window.addEventListener('captcha-validated', (event) => {
+window.addEventListener('captcha-validated', () => {
   // Hide the CAPTCHA card and form
   captchaCard.hidden = true;
   formContainer.hidden = true;
@@ -62,4 +103,3 @@ window.addEventListener('captcha-failed', (event) => {
     window.location.reload(); // Reload to try again
   }, 5000);
 });
-
