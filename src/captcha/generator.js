@@ -301,8 +301,6 @@ export class CaptchaGenerator {
 
     this.ui.setWordBoxToggleHandler(() => this.toggleAudio());
     this.ui.setAudioStatus('Ready - Click Play to start');
-
-    // Don't autoplay - let the user click Play
   }
 
   scheduleWordStart() {
