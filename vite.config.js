@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  // Configuration pour déploiement sur VistaPanel (à la racine du domaine)
+  base: '/',
+
+  // Configuration serveur de développement local
   server: {
     proxy: {
       '/backend': {
@@ -10,6 +14,17 @@ export default defineConfig({
           '^/backend': '',
         },
         logLevel: 'debug',
+      },
+    },
+  },
+
+  // Optimisations pour la production
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
       },
     },
   },
