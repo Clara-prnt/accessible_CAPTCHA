@@ -270,8 +270,25 @@ export class CaptchaUI {
       clearTimeout(this.wordDisplayTimeout);
       this.wordDisplayTimeout = null;
     }
+    this.currentlyDisplayedWord = null;
     if (this.wordElement) {
       this.wordElement.textContent = '';
+      this.wordElement.classList.remove('fade-in');
+      this.wordElement.classList.add('fade-out');
+    }
+  }
+
+  /**
+   * Reset the word sequence so the next play starts from the beginning.
+   */
+  resetWordSequence() {
+    this.currentWordIndex = 0;
+    this.currentlyDisplayedWord = null;
+
+    if (this.wordElement) {
+      this.wordElement.textContent = '';
+      this.wordElement.classList.remove('fade-in');
+      this.wordElement.classList.add('fade-out');
     }
   }
 

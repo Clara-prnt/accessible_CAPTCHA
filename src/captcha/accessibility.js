@@ -5,7 +5,6 @@
  * - Full keyboard navigation support
  * - Clear visual focus indicators
  * - Text alternatives for audio
- * - High contrast and readable fonts
  */
 export class AccessibilityManager {
   constructor() {

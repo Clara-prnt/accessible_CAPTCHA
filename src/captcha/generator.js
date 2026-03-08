@@ -231,7 +231,6 @@ export class CaptchaGenerator {
     });
 
     if (!response.ok) {
-      const errorData = await response.text();
       throw new Error(`GenerateAudio failed (HTTP ${response.status})`);
     }
 
@@ -249,8 +248,7 @@ export class CaptchaGenerator {
 
     const leadInSeconds = Number(data.leadInSeconds ?? 0);
     this.leadInMs = Math.max(0, leadInSeconds * 1000);
-    this.wordStartRemainingMs = this.leadInMs;
-    this.wordsStarted = false;
+    this.resetWordStartState();
     this.ui.initializeAudioControls({
       onToggle: () => this.toggleAudio(),
       onVolumeChange: (value) => this.audio.setVolume(value),
@@ -287,11 +285,7 @@ export class CaptchaGenerator {
         this.ui.setPlayPauseState(false);
         this.ui.setAudioStatus('Finished');
         this.isValidationActive = false; // Disable click/key validation
-        if (this.wordStartTimeout) {
-          clearTimeout(this.wordStartTimeout);
-          this.wordStartTimeout = null;
-        }
-        this.ui.stopDisplayingWords();
+        this.resetWordStartState({ resetWordSequence: true });
       },
       onError: () => {
         this.ui.setAudioStatus('Audio error');
@@ -399,6 +393,25 @@ export class CaptchaGenerator {
       }
     });
     window.dispatchEvent(failureEvent);
+  }
+
+  /**
+   * Reinitialize word start timing so each playback cycle can start from the configured lead-in.
+   */
+  resetWordStartState({ resetWordSequence = false } = {}) {
+    if (this.wordStartTimeout) {
+      clearTimeout(this.wordStartTimeout);
+      this.wordStartTimeout = null;
+    }
+
+    this.wordStartRemainingMs = this.leadInMs;
+    this.wordStartTimestamp = 0;
+    this.wordsStarted = false;
+
+    if (resetWordSequence && this.ui) {
+      this.ui.stopDisplayingWords();
+      this.ui.resetWordSequence();
+    }
   }
 
   /**
