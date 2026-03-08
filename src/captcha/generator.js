@@ -52,7 +52,6 @@ export class CaptchaGenerator {
       await this.startAudio();
       await this.loadTextboxWords();
     } catch (error) {
-      console.error('Error initializing CAPTCHA:', error);
       this.ui.showError('Failed to initialize CAPTCHA: ' + error.message);
     }
   }
@@ -139,7 +138,7 @@ export class CaptchaGenerator {
   displayInstructions() {
     const explanation = document.getElementById('explanation');
     explanation.textContent =
-        `You will hear an everyday situation, and see random words appear.
+        `You will hear an everyday situation with random words.
         Press shift ${this.clicksRequired} times rapidly when you hear or see "${this.targetWord}".
         To start the verification, click on the play button once. You can listen to the audio multiple times.`;
 
@@ -176,7 +175,6 @@ export class CaptchaGenerator {
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('Response starts with:', responseText.substring(0, 50));
       throw new Error(`Server returned invalid JSON. Make sure PHP server is running on port 8000. Cause: ${parseError}`);
     }
 
@@ -234,7 +232,6 @@ export class CaptchaGenerator {
 
     if (!response.ok) {
       const errorData = await response.text();
-      console.error('❌ GenerateAudio error response:', errorData.substring(0, 200));
       throw new Error(`GenerateAudio failed (HTTP ${response.status})`);
     }
 

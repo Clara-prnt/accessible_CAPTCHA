@@ -30,7 +30,6 @@ export class AccessibilityManager {
     this.observeDynamicElements();
     this.setupKeyboardNavigation();
     this.setupFocusManagement();
-    this.addVisualFocusIndicators();
     this.pauseSpeechSynthesisDuringAudio();
 
     this.isInitialized = true;
@@ -124,21 +123,18 @@ export class AccessibilityManager {
         wordDisplay.setAttribute('aria-label', 'Word display area');
       }
 
-      // Validation feedback
       const validation = document.getElementById('validation');
       if (validation) {
         validation.setAttribute('role', 'alert');
         validation.setAttribute('aria-live', 'assertive');
       }
 
-      // CAPTCHA card
       const captchaCard = document.getElementById('captcha_card');
       if (captchaCard) {
         captchaCard.setAttribute('role', 'region');
         captchaCard.setAttribute('aria-label', 'CAPTCHA verification area');
       }
 
-      // Error messages
       const error = document.getElementById('error');
       if (error) {
         error.setAttribute('role', 'alert');
@@ -294,15 +290,6 @@ export class AccessibilityManager {
   }
 
   /**
-   * Add visual focus indicators for keyboard users
-   * All styles are defined in style.css
-   */
-  addVisualFocusIndicators() {
-    // Focus indicators are now defined in style.css
-    // This method is kept for consistency but no longer injects styles
-  }
-
-  /**
    * Announce click feedback
    * @param {Object} feedback - Feedback object from validator
    */
@@ -353,7 +340,8 @@ export class AccessibilityManager {
   announceInstructions(targetWord, clicksRequired) {
     const message = `
       CAPTCHA Instructions.
-      You will hear an everyday situation. Press shift ${clicksRequired} times rapidly when you hear or see the word: ${targetWord}.
+      You will hear an everyday situation with random words. 
+      Press shift ${clicksRequired} times rapidly when you hear the word: ${targetWord}.
       Press Alt+H for keyboard shortcuts help.
       Click the Play button to start the verification.
     `;
