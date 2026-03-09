@@ -80,8 +80,24 @@ class RateLimiter {
                 ];
             }
 
-            if (($limitData['blocked_until'] ?? 0) > $now) {
-                $retryAfter = (int)($limitData['blocked_until'] - $now);
+            // Normalize and prune timestamps first so stale data cannot keep users blocked.
+            $limitData['timestamps'] = array_values(array_filter(
+                $limitData['timestamps'] ?? [],
+                fn($ts) => is_numeric($ts) && (($now - (int)$ts) <= $timeWindow)
+            ));
+
+            $currentCount = count($limitData['timestamps']);
+            $blockedUntil = (int)($limitData['blocked_until'] ?? 0);
+
+            // If a previous block is no longer justified with current limits, clear it.
+            if ($blockedUntil > $now && $currentCount < $maxRequests) {
+                $limitData['blocked_until'] = 0;
+                self::persist($handle, $limitData);
+                $blockedUntil = 0;
+            }
+
+            if ($blockedUntil > $now) {
+                $retryAfter = (int)($blockedUntil - $now);
                 return [
                     'allowed' => false,
                     'message' => "Rate limit exceeded. Please try again in $retryAfter seconds.",
@@ -89,12 +105,7 @@ class RateLimiter {
                 ];
             }
 
-            $limitData['timestamps'] = array_filter(
-                $limitData['timestamps'] ?? [],
-                fn($ts) => ($now - $ts) <= $timeWindow
-            );
-
-            if (count($limitData['timestamps']) >= $maxRequests) {
+            if ($currentCount >= $maxRequests) {
                 $oldestTimestamp = min($limitData['timestamps']);
                 $retryAfter = max(1, $timeWindow - ($now - $oldestTimestamp));
                 $limitData['blocked_until'] = $now + $retryAfter;

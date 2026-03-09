@@ -10,10 +10,10 @@ class SecurityConfig {
     const SESSION_LIFETIME = 1800; // 30 minutes (1800)
 
     // Rate Limiting Configuration
-    const RATE_LIMIT_INIT_REQUESTS = 5; // Max init requests (5) | for testing, x20
-    const RATE_LIMIT_INIT_WINDOW = 900; // 15 minutes (900) | for testing, 30 minutes (1800)
-    const RATE_LIMIT_VALIDATION_REQUESTS = 10; // Max validation attempts (10) | for testing, x100
-    const RATE_LIMIT_VALIDATION_WINDOW = 3600; // 1 hour (3600) | for testing, 20 minutes (1200)
+    const RATE_LIMIT_INIT_REQUESTS = 1000; // Max init requests (5) | for testing, x20
+    const RATE_LIMIT_INIT_WINDOW = 1800; // 15 minutes (900) | for testing, 30 minutes (1800)
+    const RATE_LIMIT_VALIDATION_REQUESTS = 1000; // Max validation attempts (10) | for testing, x100
+    const RATE_LIMIT_VALIDATION_WINDOW = 3600; // 1 hour (3600)
 
     // Captcha Configuration
     const CAPTCHA_SESSION_LIFETIME = 600; // 10 minutes
