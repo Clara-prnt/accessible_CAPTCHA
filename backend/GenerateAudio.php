@@ -105,9 +105,15 @@ try {
     // Pass shuffled words as a safe CLI arg (base64 JSON).
     $displayWordsArg = base64_encode($displayWordsJson);
 
-    // Prepare the Python command
+    // Prepare the Python command with proper escaping to prevent command injection
     $pythonScript = __DIR__ . '/generate_audio.py';
-    $command = "python \"$pythonScript\" \"$scenarioId\" \"$targetWord\" \"$displayWordsArg\" 2>&1";
+    $command = sprintf(
+        'python %s %s %s %s 2>&1',
+        escapeshellarg($pythonScript),
+        escapeshellarg($scenarioId),
+        escapeshellarg($targetWord),
+        escapeshellarg($displayWordsArg)
+    );
 
     // Execute the Python script
     $output = shell_exec($command);

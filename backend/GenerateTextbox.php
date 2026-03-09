@@ -53,7 +53,7 @@ try {
     $targetWord = $input['targetWord'];
     $csrfToken = $input['csrf_token'];
     $captchaSessionId = $input['captcha_session_id'];
-    $clicksRequired = $input['clicksRequired'] ?? 3;
+    $clicksRequired = $input['clicksRequired'] ?? null;
 
     // Validate parameter formats
     if (!InputValidator::validateScenarioId($scenarioId)) {
@@ -72,9 +72,13 @@ try {
         SecurityConfig::sendResponse(['error' => 'Invalid session ID'], 400);
     }
 
-    // Validate clicks required
+    // Validate clicks required - strict validation, no silent fallback
+    if ($clicksRequired === null) {
+        SecurityConfig::sendResponse(['error' => 'Missing clicksRequired parameter'], 400);
+    }
+
     if (!is_int($clicksRequired) || $clicksRequired < 1 || $clicksRequired > 10) {
-        $clicksRequired = 3;
+        SecurityConfig::sendResponse(['error' => 'Invalid clicksRequired value. Must be an integer between 1 and 10'], 400);
     }
 
     // Validate CSRF token

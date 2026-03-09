@@ -82,7 +82,17 @@ try:
     sys.stdout.write(json.dumps(response))
     sys.stdout.flush()
 except Exception as exc:
-    sys.stdout.write(json.dumps({'error': str(exc)}))
+    # Log the full error for debugging (to stderr which will be logged by PHP)
+    import traceback
+    sys.stderr.write(f"Audio generation error: {str(exc)}\n")
+    sys.stderr.write(traceback.format_exc())
+    sys.stderr.flush()
+
+    # Return a generic error message to the client (no technical details exposed)
+    sys.stdout.write(json.dumps({
+        'error': 'Audio generation failed',
+        'success': False
+    }))
     sys.stdout.flush()
     sys.exit(1)
 

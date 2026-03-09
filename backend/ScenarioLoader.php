@@ -1,9 +1,20 @@
 <?php
 
+require_once __DIR__ . '/SecurityConfig.php';
+
 function loadScenariosFromJSONFile($scenarioId)
 {
     $scenariosPath = __DIR__ . '/../src/data/scenarios.json';
+
+    if (!file_exists($scenariosPath)) {
+        SecurityConfig::sendResponse(['error' => 'Scenarios file not found'], 500);
+    }
+
     $scenariosData = json_decode(file_get_contents($scenariosPath), true);
+
+    if ($scenariosData === null || !isset($scenariosData['scenarios'])) {
+        SecurityConfig::sendResponse(['error' => 'Invalid scenarios file format'], 500);
+    }
 
     $scenario = null;
     foreach ($scenariosData['scenarios'] as $s) {
@@ -14,9 +25,7 @@ function loadScenariosFromJSONFile($scenarioId)
     }
 
     if (!$scenario) {
-        http_response_code(404);
-        echo json_encode(['error' => 'Scenario not found']);
-        exit;
+        SecurityConfig::sendResponse(['error' => 'Scenario not found'], 404);
     }
 
     return $scenario;

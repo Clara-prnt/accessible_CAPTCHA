@@ -25,6 +25,8 @@ This is a prototype open source project designed to help others add accessible C
 
 ## ⚙️ Starting process
 
+**📋 Prerequisites:** Make sure you have installed all system requirements. See [PREREQUISITES.md](PREREQUISITES.md) for detailed instructions.
+
 To start the project on localhost, go into your terminal and run the following commands:
 ```powershell
 cd C:\your_path\captcha_vite
@@ -36,6 +38,30 @@ That's it! The script will:
 - ✅ Start the PHP server automatically
 - ✅ Start Vite automatically
 - ✅ Open your browser automatically
+
+## 🧹 Maintenance
+
+### Audio File Cleanup
+
+Audio files are generated temporarily and should be cleaned regularly to avoid disk space issues.
+
+**Manual cleanup:**
+```bash
+php backend/cleanup_audio.php
+```
+
+**Automatic cleanup (recommended for production):**
+
+Add to crontab (Linux/macOS):
+```bash
+# Clean audio files every hour
+0 * * * * /usr/bin/php /path/to/backend/cleanup_audio.php >> /var/log/captcha_cleanup.log 2>&1
+```
+
+Windows Task Scheduler:
+- Program: `C:\path\to\php.exe`
+- Arguments: `C:\path\to\backend\cleanup_audio.php`
+- Trigger: Daily, repeat every 1 hour
 
 ## Security anti-bot tests
 
