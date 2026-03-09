@@ -54,7 +54,6 @@ class RateLimiter {
 
         $handle = fopen($path, 'c+');
         if ($handle === false) {
-            // Fail closed: if storage is unavailable, do not grant unlimited requests.
             return [
                 'allowed' => false,
                 'message' => 'Rate limit storage unavailable. Please retry later.',
@@ -74,12 +73,10 @@ class RateLimiter {
             $raw = stream_get_contents($handle);
             $limitData = json_decode($raw ?: '', true);
 
-            if (!is_array($limitData)) {
+            if (!is_array($limitData) || !isset($limitData['timestamps'])) {
                 $limitData = [
-                    'count' => 0,
-                    'window_start' => $now,
-                    'blocked_until' => 0,
-                    'updated_at' => $now
+                    'timestamps' => [],
+                    'blocked_until' => 0
                 ];
             }
 
@@ -92,16 +89,15 @@ class RateLimiter {
                 ];
             }
 
-            if ($now - (int)($limitData['window_start'] ?? $now) > $timeWindow) {
-                $limitData['count'] = 0;
-                $limitData['window_start'] = $now;
-                $limitData['blocked_until'] = 0;
-            }
+            $limitData['timestamps'] = array_filter(
+                $limitData['timestamps'] ?? [],
+                fn($ts) => ($now - $ts) <= $timeWindow
+            );
 
-            if ((int)($limitData['count'] ?? 0) >= $maxRequests) {
-                $retryAfter = max(1, $timeWindow - ($now - (int)$limitData['window_start']));
+            if (count($limitData['timestamps']) >= $maxRequests) {
+                $oldestTimestamp = min($limitData['timestamps']);
+                $retryAfter = max(1, $timeWindow - ($now - $oldestTimestamp));
                 $limitData['blocked_until'] = $now + $retryAfter;
-                $limitData['updated_at'] = $now;
                 self::persist($handle, $limitData);
 
                 return [
@@ -111,8 +107,8 @@ class RateLimiter {
                 ];
             }
 
-            $limitData['count'] = (int)($limitData['count'] ?? 0) + 1;
-            $limitData['updated_at'] = $now;
+            $limitData['timestamps'][] = $now;
+            $limitData['blocked_until'] = 0;
             self::persist($handle, $limitData);
 
             return [
@@ -148,13 +144,14 @@ class RateLimiter {
 
             $raw = stream_get_contents($handle);
             $limitData = json_decode($raw ?: '', true);
-            if (!is_array($limitData)) {
+            if (!is_array($limitData) || !isset($limitData['timestamps'])) {
                 return;
             }
 
-            $limitData['count'] = max(0, (int)($limitData['count'] ?? 0) - 1);
-            $limitData['updated_at'] = time();
-            self::persist($handle, $limitData);
+            if (count($limitData['timestamps']) > 0) {
+                array_pop($limitData['timestamps']);
+                self::persist($handle, $limitData);
+            }
         } finally {
             flock($handle, LOCK_UN);
             fclose($handle);

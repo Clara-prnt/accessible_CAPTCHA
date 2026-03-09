@@ -32,7 +32,7 @@ try:
     # Build audio text with pauses between words
     # Add introduction (scenario text)
     intro_words = scenario['text'].split()
-    lead_in_seconds = max(0.5, len(intro_words) / 2.5)
+    lead_in_seconds = max(0.5, len(intro_words) / 2.2)
 
     # Create audio with explicit pauses between words for clarity
     # Format: "word <pause> word <pause> word"
